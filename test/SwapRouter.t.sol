@@ -5,27 +5,28 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
 import {ERC20PresetFixedSupply} from "../lib/valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
-import {WETH} from "solmate/src/tokens/WETH.sol";
+import {WETH} from "lib/solmate/src/tokens/WETH.sol";
 import {DeployPermit2} from "lib/permit2/test/utils/DeployPermit2.sol";
 
-import {ALMLiquidityQuote} from "src/ALM/mocks/MockUniversalALM.sol";
-import {MockSovereignALM} from "src/ALM/mocks/MockSovereignALM.sol";
-import {MockSovereignALMFactory} from "src/ALM/mocks/factories/MockSovereignALMFactory.sol";
-import {SovereignPool} from "src/pools/SovereignPool.sol";
-import {SovereignPoolFactory} from "src/pools/factories/SovereignPoolFactory.sol";
-import {SovereignPoolConstructorArgs} from "src/pools/structs/SovereignPoolStructs.sol";
-import {MockUniversalALM} from "src/ALM/mocks/MockUniversalALM.sol";
-import {MockUniversalALMFactory} from "src/ALM/mocks/factories/MockUniversalALMFactory.sol";
-import {UniversalPool, PoolState} from "src/pools/UniversalPool.sol";
-import {ALMReserves} from "src/ALM/structs/UniversalALMStructs.sol";
-import {UniversalPoolFactory} from "src/pools/factories/UniversalPoolFactory.sol";
-import {ProtocolFactory} from "src/protocol-factory/ProtocolFactory.sol";
-import {ValantisSwapRouter} from "src/swap-router/ValantisSwapRouter.sol";
-import {DirectSwapParams, UniversalPoolSwapPayload, SovereignPoolSwapPayload, GaslessSwapParams, GaslessSwapIntent} from "src/swap-router/structs/ValantisSwapRouterStructs.sol";
-import {DirectSwap} from "src/swap-router/libraries/DirectSwap.sol";
-import {SignatureVerification} from "src/swap-router/libraries/SignatureVerification.sol";
-import {PriceTickMath} from "src/libraries/PriceTickMath.sol";
-import {IAllowanceTransfer} from "src/swap-router/interfaces/IAllowanceTransfer.sol";
+import {ALMLiquidityQuote} from "../lib/valantis-core/src/ALM/structs/SovereignALMStructs.sol";
+import {MockSovereignALM} from "../lib/valantis-core/src/mocks/MockSovereignALM.sol";
+import {MockSovereignALMFactory} from "../lib/valantis-core/src/mocks/MockSovereignALMFactory.sol";
+import {SovereignPool} from "../lib/valantis-core/src/pools/SovereignPool.sol";
+import {SovereignPoolFactory} from "../lib/valantis-core/src/pools/factories/SovereignPoolFactory.sol";
+import {SovereignPoolConstructorArgs} from "../lib/valantis-core/src/pools/structs/SovereignPoolStructs.sol";
+import {MockUniversalALM} from "../lib/valantis-core/src/mocks/MockUniversalALM.sol";
+import {MockUniversalALMFactory} from "../lib/valantis-core/src/mocks/MockUniversalALMFactory.sol";
+import {UniversalPool, PoolState} from "../lib/valantis-core/src/pools/UniversalPool.sol";
+import {ALMReserves} from "../lib/valantis-core/src/ALM/structs/UniversalALMStructs.sol";
+import {UniversalPoolFactory} from "../lib/valantis-core/src/pools/factories/UniversalPoolFactory.sol";
+import {ProtocolFactory} from "../lib/valantis-core/src/protocol-factory/ProtocolFactory.sol";
+import {PriceTickMath} from "../lib/valantis-core/src/libraries/PriceTickMath.sol";
+
+import {ValantisSwapRouter} from "../src/swap-router/ValantisSwapRouter.sol";
+import {DirectSwapParams, UniversalPoolSwapPayload, SovereignPoolSwapPayload, GaslessSwapParams, GaslessSwapIntent} from "../src/swap-router/structs/ValantisSwapRouterStructs.sol";
+import {DirectSwap} from "../src/swap-router/libraries/DirectSwap.sol";
+import {SignatureVerification} from "../src/swap-router/libraries/SignatureVerification.sol";
+import {IAllowanceTransfer} from "../src/swap-router/interfaces/IAllowanceTransfer.sol";
 
 contract SwapRouterTest is Test, DeployPermit2 {
     error SwapRouterTest__receive_revertOnReceive();
