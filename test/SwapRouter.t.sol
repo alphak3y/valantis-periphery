@@ -6,7 +6,7 @@ import "forge-std/console.sol";
 
 import {ERC20PresetFixedSupply} from "../lib/valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
 import {WETH} from "solmate/src/tokens/WETH.sol";
-import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
+import {DeployPermit2} from "lib/permit2/test/utils/DeployPermit2.sol";
 
 import {ALMLiquidityQuote} from "src/ALM/mocks/MockUniversalALM.sol";
 import {MockSovereignALM} from "src/ALM/mocks/MockSovereignALM.sol";
