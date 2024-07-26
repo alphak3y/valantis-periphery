@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import {DirectSwapParams} from "../structs/ValantisSwapRouterStructs.sol";
+import { DirectSwapParams } from '../structs/ValantisSwapRouterStructs.sol';
 
 library DirectSwap {
     error DirectSwap__checkDirectSwapParams_arrayLengthMismatch();
@@ -9,24 +9,17 @@ library DirectSwap {
     error DirectSwap__checkDirectSwapParams_invalidArrayLength();
     error DirectSwap__checkDirectSwapParams_invalidDeadline();
 
-    function checkDirectSwapParams(
-        DirectSwapParams calldata directSwapParams,
-        uint256 msgValue
-    ) internal view {
-        if (block.timestamp > directSwapParams.deadline)
-            revert DirectSwap__checkDirectSwapParams_invalidDeadline();
+    function checkDirectSwapParams(DirectSwapParams calldata directSwapParams, uint256 msgValue) internal view {
+        if (block.timestamp > directSwapParams.deadline) revert DirectSwap__checkDirectSwapParams_invalidDeadline();
 
         if (directSwapParams.isUniversalPool.length == 0) {
             revert DirectSwap__checkDirectSwapParams_invalidArrayLength();
         }
 
         if (
-            directSwapParams.isUniversalPool.length !=
-            directSwapParams.pools.length ||
-            directSwapParams.pools.length !=
-            directSwapParams.amountInSpecified.length ||
-            directSwapParams.amountInSpecified.length !=
-            directSwapParams.payloads.length
+            directSwapParams.isUniversalPool.length != directSwapParams.pools.length ||
+            directSwapParams.pools.length != directSwapParams.amountInSpecified.length ||
+            directSwapParams.amountInSpecified.length != directSwapParams.payloads.length
         ) revert DirectSwap__checkDirectSwapParams_arrayLengthMismatch();
 
         // In case tokenIn is ETH, we require that msg.value is equal to total amountIn specified

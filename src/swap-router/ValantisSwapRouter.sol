@@ -1,26 +1,38 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import {SafeCast} from "../../lib/valantis-core/lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol";
-import {IERC20} from "../../lib/valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "../../lib/valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IUniversalPool} from "../../lib/valantis-core/src/pools/interfaces/IUniversalPool.sol";
-import {ISovereignPool} from "../../lib/valantis-core/src/pools/interfaces/ISovereignPool.sol";
-import {SovereignPoolSwapContextData, SovereignPoolSwapParams} from "../../lib/valantis-core/src/pools/structs/SovereignPoolStructs.sol";
-import {SwapParams} from "../../lib/valantis-core/src/pools/structs/UniversalPoolStructs.sol";
-import {ReentrancyGuard} from "../../lib/valantis-core/src/utils/ReentrancyGuard.sol";
+import { SafeCast } from '../../lib/valantis-core/lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol';
+import { IERC20 } from '../../lib/valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import {
+    SafeERC20
+} from '../../lib/valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import { IUniversalPool } from '../../lib/valantis-core/src/pools/interfaces/IUniversalPool.sol';
+import { ISovereignPool } from '../../lib/valantis-core/src/pools/interfaces/ISovereignPool.sol';
+import {
+    SovereignPoolSwapContextData,
+    SovereignPoolSwapParams
+} from '../../lib/valantis-core/src/pools/structs/SovereignPoolStructs.sol';
+import { SwapParams } from '../../lib/valantis-core/src/pools/structs/UniversalPoolStructs.sol';
+import { ReentrancyGuard } from '../../lib/valantis-core/src/utils/ReentrancyGuard.sol';
 
-import {EIP712} from "./EIP712.sol";
-import {SignatureVerification} from "./libraries/SignatureVerification.sol";
-import {IWETH9} from "./interfaces/IWETH9.sol";
-import {IProtocolFactory} from "../../lib/valantis-core/src/protocol-factory/interfaces/IProtocolFactory.sol";
-import {IAllowanceTransfer} from "./interfaces/IAllowanceTransfer.sol";
-import {IValantisSwapRouter} from "./interfaces/IValantisSwapRouter.sol";
-import {GaslessSwapIntentHash} from "./libraries/GaslessSwapIntentHash.sol";
-import {GaslessSwap} from "./libraries/GaslessSwap.sol";
-import {DirectSwap} from "./libraries/DirectSwap.sol";
-import {NonceBitmap} from "./libraries/NonceBitmap.sol";
-import {GaslessSwapParams, GaslessSwapIntent, DirectSwapParams, ExecuteSwapParams, UniversalPoolSwapPayload, SovereignPoolSwapPayload} from "./structs/ValantisSwapRouterStructs.sol";
+import { EIP712 } from './EIP712.sol';
+import { SignatureVerification } from './libraries/SignatureVerification.sol';
+import { IWETH9 } from './interfaces/IWETH9.sol';
+import { IProtocolFactory } from '../../lib/valantis-core/src/protocol-factory/interfaces/IProtocolFactory.sol';
+import { IAllowanceTransfer } from './interfaces/IAllowanceTransfer.sol';
+import { IValantisSwapRouter } from './interfaces/IValantisSwapRouter.sol';
+import { GaslessSwapIntentHash } from './libraries/GaslessSwapIntentHash.sol';
+import { GaslessSwap } from './libraries/GaslessSwap.sol';
+import { DirectSwap } from './libraries/DirectSwap.sol';
+import { NonceBitmap } from './libraries/NonceBitmap.sol';
+import {
+    GaslessSwapParams,
+    GaslessSwapIntent,
+    DirectSwapParams,
+    ExecuteSwapParams,
+    UniversalPoolSwapPayload,
+    SovereignPoolSwapPayload
+} from './structs/ValantisSwapRouterStructs.sol';
 
 contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
     using GaslessSwapIntentHash for GaslessSwapIntent;
@@ -148,10 +160,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
             revert ValantisSwapRouter__universalPoolSwapCallback_poolNotAllowed();
         }
 
-        (address tokenIn, address payer) = abi.decode(
-            _swapCallbackContext,
-            (address, address)
-        );
+        (address tokenIn, address payer) = abi.decode(_swapCallbackContext, (address, address));
 
         if (payer != address(this) && tokenIn != _tokenIn) {
             revert ValantisSwapRouter__universalPoolSwapCallback_invalidTokenIn();
@@ -176,10 +185,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
             revert ValantisSwapRouter__sovereignPoolSwapCallback_poolNotAllowed();
         }
 
-        (address tokenIn, address payer) = abi.decode(
-            _swapCallbackContext,
-            (address, address)
-        );
+        (address tokenIn, address payer) = abi.decode(_swapCallbackContext, (address, address));
 
         if (payer != address(this) && tokenIn != _tokenIn) {
             revert ValantisSwapRouter__sovereignPoolSwapCallback_invalidTokenIn();
@@ -203,19 +209,14 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         bytes calldata _ownerSignature,
         uint128 _fee
     ) external override nonReentrant returns (uint256 amountOut) {
-        uint256 tokenOutPreBalance = IERC20(_gaslessSwapParams.intent.tokenOut)
-            .balanceOf(_gaslessSwapParams.intent.recipient);
-
-        uint256 amountOutTotal = _gaslessSwap(
-            _gaslessSwapParams,
-            _ownerSignature,
-            _fee
+        uint256 tokenOutPreBalance = IERC20(_gaslessSwapParams.intent.tokenOut).balanceOf(
+            _gaslessSwapParams.intent.recipient
         );
 
+        uint256 amountOutTotal = _gaslessSwap(_gaslessSwapParams, _ownerSignature, _fee);
+
         amountOut =
-            IERC20(_gaslessSwapParams.intent.tokenOut).balanceOf(
-                _gaslessSwapParams.intent.recipient
-            ) -
+            IERC20(_gaslessSwapParams.intent.tokenOut).balanceOf(_gaslessSwapParams.intent.recipient) -
             tokenOutPreBalance;
 
         if (
@@ -250,20 +251,15 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         uint256 length = _gaslessSwapParamsArray.length;
         amountOutArray = new uint256[](length);
         for (uint256 i; i < length; ) {
-            uint256 tokenOutPreBalance = IERC20(
-                _gaslessSwapParamsArray[i].intent.tokenOut
-            ).balanceOf(_gaslessSwapParamsArray[i].intent.recipient);
-
-            uint256 amountOutTotal = _gaslessSwap(
-                _gaslessSwapParamsArray[i],
-                _ownerSignaturesArray[i],
-                _feeArray[i]
+            uint256 tokenOutPreBalance = IERC20(_gaslessSwapParamsArray[i].intent.tokenOut).balanceOf(
+                _gaslessSwapParamsArray[i].intent.recipient
             );
 
-            uint256 amountOut = IERC20(
-                _gaslessSwapParamsArray[i].intent.tokenOut
-            ).balanceOf(_gaslessSwapParamsArray[i].intent.recipient) -
-                tokenOutPreBalance;
+            uint256 amountOutTotal = _gaslessSwap(_gaslessSwapParamsArray[i], _ownerSignaturesArray[i], _feeArray[i]);
+
+            uint256 amountOut = IERC20(_gaslessSwapParamsArray[i].intent.tokenOut).balanceOf(
+                _gaslessSwapParamsArray[i].intent.recipient
+            ) - tokenOutPreBalance;
 
             if (
                 amountOut < _gaslessSwapParamsArray[i].intent.amountOutMin ||
@@ -296,8 +292,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         _directSwapParams.checkDirectSwapParams(msg.value);
 
         // Execute swap(s)
-        uint256 tokenOutPreBalance = IERC20(_directSwapParams.tokenOut)
-            .balanceOf(_directSwapParams.recipient);
+        uint256 tokenOutPreBalance = IERC20(_directSwapParams.tokenOut).balanceOf(_directSwapParams.recipient);
         uint256 amountOutTotal = _executeSwaps(
             ExecuteSwapParams({
                 isUniversalPool: _directSwapParams.isUniversalPool,
@@ -311,16 +306,9 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
             })
         );
 
-        amountOut =
-            IERC20(_directSwapParams.tokenOut).balanceOf(
-                _directSwapParams.recipient
-            ) -
-            tokenOutPreBalance;
+        amountOut = IERC20(_directSwapParams.tokenOut).balanceOf(_directSwapParams.recipient) - tokenOutPreBalance;
 
-        if (
-            amountOut < _directSwapParams.amountOutMin ||
-            amountOutTotal < _directSwapParams.amountOutMin
-        ) {
+        if (amountOut < _directSwapParams.amountOutMin || amountOutTotal < _directSwapParams.amountOutMin) {
             revert ValantisSwapRouter__swap_insufficientAmountOut();
         }
 
@@ -342,19 +330,13 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         // Initial checks
         gaslessSwapParams.checkGaslessSwapParams();
 
-        if (fee > gaslessSwapParams.intent.maxFee)
-            revert ValantisSwapRouter___gaslessSwap_excessiveFee();
+        if (fee > gaslessSwapParams.intent.maxFee) revert ValantisSwapRouter___gaslessSwap_excessiveFee();
 
         // Consume nonce
-        nonceBitmap[gaslessSwapParams.intent.owner].consumeNonce(
-            gaslessSwapParams.intent.nonce
-        );
+        nonceBitmap[gaslessSwapParams.intent.owner].consumeNonce(gaslessSwapParams.intent.nonce);
 
         // Verify owner signature
-        ownerSignature.verify(
-            _hashTypedDataV4(gaslessSwapParams.intent.hashStruct()),
-            gaslessSwapParams.intent.owner
-        );
+        ownerSignature.verify(_hashTypedDataV4(gaslessSwapParams.intent.hashStruct()), gaslessSwapParams.intent.owner);
 
         // Execute swap(s)
         amountOutTotal = _executeSwaps(
@@ -381,9 +363,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         }
     }
 
-    function _executeSwaps(
-        ExecuteSwapParams memory params
-    ) private returns (uint256 amountOutTotal) {
+    function _executeSwaps(ExecuteSwapParams memory params) private returns (uint256 amountOutTotal) {
         uint256 amountOutSwap;
 
         // First swap's amountIn must be specified by owner
@@ -395,31 +375,17 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
             address tokenOutSwap;
             (tokenOutSwap, amountOutSwap) = params.isUniversalPool[i]
                 ? _executeSingleSwapUniversalPool(
-                    params.amountInSpecified[i] > 0
-                        ? params.amountInSpecified[i]
-                        : amountOutSwap,
+                    params.amountInSpecified[i] > 0 ? params.amountInSpecified[i] : amountOutSwap,
                     params.deadline,
                     params.pools[i],
-                    abi.encode(
-                        params.tokenIn,
-                        params.amountInSpecified[i] > 0
-                            ? params.owner
-                            : address(this)
-                    ),
+                    abi.encode(params.tokenIn, params.amountInSpecified[i] > 0 ? params.owner : address(this)),
                     params.payloads[i]
                 )
                 : _executeSingleSwapSovereignPool(
-                    params.amountInSpecified[i] > 0
-                        ? params.amountInSpecified[i]
-                        : amountOutSwap,
+                    params.amountInSpecified[i] > 0 ? params.amountInSpecified[i] : amountOutSwap,
                     params.deadline,
                     params.pools[i],
-                    abi.encode(
-                        params.tokenIn,
-                        params.amountInSpecified[i] > 0
-                            ? params.owner
-                            : address(this)
-                    ),
+                    abi.encode(params.tokenIn, params.amountInSpecified[i] > 0 ? params.owner : address(this)),
                     params.payloads[i]
                 );
 
@@ -444,10 +410,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
             revert ValantisSwapRouter___executeSingleSwapUniversalPool_invalidUniversalPool();
         }
 
-        UniversalPoolSwapPayload memory payloadStruct = abi.decode(
-            payload,
-            (UniversalPoolSwapPayload)
-        );
+        UniversalPoolSwapPayload memory payloadStruct = abi.decode(payload, (UniversalPoolSwapPayload));
 
         allowedUniversalPool = pool;
 
@@ -467,9 +430,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
             })
         );
 
-        tokenOut = payloadStruct.isZeroToOne
-            ? IUniversalPool(pool).token1()
-            : IUniversalPool(pool).token0();
+        tokenOut = payloadStruct.isZeroToOne ? IUniversalPool(pool).token1() : IUniversalPool(pool).token0();
 
         allowedUniversalPool = address(1);
     }
@@ -485,10 +446,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
             revert ValantisSwapRouter___executeSingleSwapSovereignPool_invalidSovereignPool();
         }
 
-        SovereignPoolSwapPayload memory payloadStruct = abi.decode(
-            payload,
-            (SovereignPoolSwapPayload)
-        );
+        SovereignPoolSwapPayload memory payloadStruct = abi.decode(payload, (SovereignPoolSwapPayload));
 
         allowedSovereignPool = pool;
 
@@ -514,14 +472,9 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         allowedSovereignPool = address(1);
     }
 
-    function _executeTransfer(
-        address token,
-        address payer,
-        address recipient,
-        uint256 amount
-    ) private {
+    function _executeTransfer(address token, address payer, address recipient, uint256 amount) private {
         if (token == WETH9 && address(this).balance >= amount) {
-            IWETH9(WETH9).deposit{value: amount}();
+            IWETH9(WETH9).deposit{ value: amount }();
             IWETH9(WETH9).transfer(recipient, amount);
         } else if (payer == address(this)) {
             IERC20(token).safeTransfer(recipient, amount);
@@ -534,7 +487,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         uint256 balance = address(this).balance;
 
         if (balance > 0) {
-            (bool success, ) = recipient.call{value: balance}(new bytes(0));
+            (bool success, ) = recipient.call{ value: balance }(new bytes(0));
             if (!success) {
                 revert ValantisSwapRouter___refundNativeToken_refundFailed();
             }

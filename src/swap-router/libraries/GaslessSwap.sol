@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import {GaslessSwapParams} from "../structs/ValantisSwapRouterStructs.sol";
+import { GaslessSwapParams } from '../structs/ValantisSwapRouterStructs.sol';
 
 library GaslessSwap {
     error GaslessSwap__checkGaslessSwapParams_invalidDeadline();
@@ -10,9 +10,7 @@ library GaslessSwap {
     error GaslessSwap__checkGaslessSwapParams_invalidAmountInSpecifiedArray();
     error GaslessSwap__checkGaslessSwapParams_senderNotAuthorized();
 
-    function checkGaslessSwapParams(
-        GaslessSwapParams calldata gaslessSwapParams
-    ) internal view {
+    function checkGaslessSwapParams(GaslessSwapParams calldata gaslessSwapParams) internal view {
         if (block.timestamp > gaslessSwapParams.intent.deadline)
             revert GaslessSwap__checkGaslessSwapParams_invalidDeadline();
 
@@ -21,12 +19,9 @@ library GaslessSwap {
         }
 
         if (
-            gaslessSwapParams.isUniversalPool.length !=
-            gaslessSwapParams.pools.length ||
-            gaslessSwapParams.pools.length !=
-            gaslessSwapParams.amountInSpecified.length ||
-            gaslessSwapParams.amountInSpecified.length !=
-            gaslessSwapParams.payloads.length
+            gaslessSwapParams.isUniversalPool.length != gaslessSwapParams.pools.length ||
+            gaslessSwapParams.pools.length != gaslessSwapParams.amountInSpecified.length ||
+            gaslessSwapParams.amountInSpecified.length != gaslessSwapParams.payloads.length
         ) revert GaslessSwap__checkGaslessSwapParams_arrayLengthMismatch();
 
         uint256 amountInSpecifiedSum;
