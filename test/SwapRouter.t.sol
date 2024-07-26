@@ -8,7 +8,7 @@ import {ERC20PresetFixedSupply} from "../lib/valantis-core/lib/openzeppelin-cont
 import {WETH} from "lib/solmate/src/tokens/WETH.sol";
 import {DeployPermit2} from "lib/permit2/test/utils/DeployPermit2.sol";
 
-import {ALMLiquidityQuote} from "../lib/valantis-core/src/ALM/structs/SovereignALMStructs.sol";
+import {ALMLiquidityQuote} from "../lib/valantis-core/src/ALM/structs/UniversalALMStructs.sol";
 import {MockSovereignALM} from "../lib/valantis-core/src/mocks/MockSovereignALM.sol";
 import {MockSovereignALMFactory} from "../lib/valantis-core/src/mocks/MockSovereignALMFactory.sol";
 import {SovereignPool} from "../lib/valantis-core/src/pools/SovereignPool.sol";
@@ -115,7 +115,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         assertEq(address(this).balance, TOKEN_SUPPLY);
 
         address protocolDeployer = address(this);
-        protocolFactory = new ProtocolFactory(protocolDeployer, BLOCK_TIME);
+        protocolFactory = new ProtocolFactory(protocolDeployer);
 
         SovereignPoolFactory sovereignPoolFactory = new SovereignPoolFactory();
         protocolFactory.setSovereignPoolFactory(address(sovereignPoolFactory));
@@ -237,9 +237,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                 0
             )
         );
-        PoolState memory initState = firstUniversalPool.state();
-
-        firstUniversalPool.initializeTick(0, initState);
+        firstUniversalPool.initializeTick(0);
 
         secondUniversalPool = UniversalPool(
             protocolFactory.deployUniversalPool(
@@ -249,7 +247,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                 0
             )
         );
-        secondUniversalPool.initializeTick(0, initState);
+        secondUniversalPool.initializeTick(0);
 
         thirdUniversalPool = UniversalPool(
             protocolFactory.deployUniversalPool(
@@ -259,7 +257,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                 0
             )
         );
-        thirdUniversalPool.initializeTick(0, initState);
+        thirdUniversalPool.initializeTick(0);
 
         fourthUniversalPool = UniversalPool(
             protocolFactory.deployUniversalPool(
@@ -269,7 +267,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                 0
             )
         );
-        fourthUniversalPool.initializeTick(0, initState);
+        fourthUniversalPool.initializeTick(0);
 
         invalidUniversalPool = UniversalPool(
             universalPoolFactory.deploy(
@@ -283,7 +281,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                 )
             )
         );
-        invalidUniversalPool.initializeTick(0, initState);
+        invalidUniversalPool.initializeTick(0);
 
         // Deploy Mock Sovereign ALMs
         firstSovereignALM = MockSovereignALM(
@@ -331,7 +329,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             protocolFactory.deployALMPositionForUniversalPool(
                 address(firstUniversalPool),
                 universalALMFactory,
-                abi.encode(address(firstUniversalPool))
+                abi.encode(address(firstUniversalPool), false)
             )
         );
         firstUniversalPool.addALMPosition(
@@ -346,7 +344,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             protocolFactory.deployALMPositionForUniversalPool(
                 address(secondUniversalPool),
                 universalALMFactory,
-                abi.encode(address(secondUniversalPool))
+                abi.encode(address(secondUniversalPool), false)
             )
         );
         secondUniversalPool.addALMPosition(
@@ -361,7 +359,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             protocolFactory.deployALMPositionForUniversalPool(
                 address(thirdUniversalPool),
                 universalALMFactory,
-                abi.encode(address(thirdUniversalPool))
+                abi.encode(address(thirdUniversalPool), false)
             )
         );
         thirdUniversalPool.addALMPosition(
@@ -376,7 +374,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             protocolFactory.deployALMPositionForUniversalPool(
                 address(fourthUniversalPool),
                 universalALMFactory,
-                abi.encode(address(fourthUniversalPool))
+                abi.encode(address(fourthUniversalPool), false)
             )
         );
         fourthUniversalPool.addALMPosition(
@@ -1222,7 +1220,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -1298,7 +1296,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -1311,7 +1309,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -1324,7 +1322,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -1401,7 +1399,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -1414,7 +1412,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -1427,7 +1425,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -1440,7 +1438,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -1505,7 +1503,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -1518,7 +1516,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -1531,7 +1529,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -1544,7 +1542,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -1617,7 +1615,10 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(
+                    isZeroToOne,
+                    amountInSpecified[0]
+                ),
                 new bytes(0)
             )
         );
@@ -1630,7 +1631,10 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(
+                    isZeroToOne,
+                    amountInSpecified[0]
+                ),
                 new bytes(0)
             )
         );
@@ -1643,7 +1647,10 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(
+                    isZeroToOne,
+                    amountInSpecified[0]
+                ),
                 new bytes(0)
             )
         );
@@ -1743,7 +1750,10 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(
+                    isZeroToOne,
+                    amountInSpecified[0]
+                ),
                 new bytes(0)
             )
         );
@@ -1756,7 +1766,10 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(
+                    isZeroToOne,
+                    amountInSpecified[0]
+                ),
                 new bytes(0)
             )
         );
@@ -1769,7 +1782,10 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(
+                    isZeroToOne,
+                    amountInSpecified[0]
+                ),
                 new bytes(0)
             )
         );
@@ -1930,7 +1946,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
                     : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
-                new bytes[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountIn),
                 new bytes(0)
             )
         );
@@ -2096,7 +2112,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     function _prepareUniversalPools(bool isZeroToOne) private {
-        firstUniversalALM.depositLiquidity(false, 10e18, 10e18);
+        firstUniversalALM.depositLiquidity(10e18, 10e18);
         ALMReserves memory almReserves;
         {
             almReserves = firstUniversalPool.getALMReserves(
@@ -2107,19 +2123,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             assertEq(almReserves.tokenOutReserves, 10e18);
         }
 
-        firstUniversalALM.setSwapSetupQuote(
-            isZeroToOne,
-            firstUniversalPool.spotPriceTick(),
-            ALMLiquidityQuote(
-                10e18,
-                isZeroToOne
-                    ? PriceTickMath.MIN_PRICE_TICK
-                    : PriceTickMath.MAX_PRICE_TICK,
-                new bytes(0)
-            )
-        );
-
-        secondUniversalALM.depositLiquidity(false, 10e18, 10e18);
+        secondUniversalALM.depositLiquidity(10e18, 10e18);
         {
             almReserves = secondUniversalPool.getALMReserves(
                 address(secondUniversalALM),
@@ -2129,19 +2133,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             assertEq(almReserves.tokenOutReserves, 10e18);
         }
 
-        secondUniversalALM.setSwapSetupQuote(
-            isZeroToOne,
-            secondUniversalPool.spotPriceTick(),
-            ALMLiquidityQuote(
-                10e18,
-                isZeroToOne
-                    ? PriceTickMath.MIN_PRICE_TICK
-                    : PriceTickMath.MAX_PRICE_TICK,
-                new bytes(0)
-            )
-        );
-
-        thirdUniversalALM.depositLiquidity(false, 10e18, 10e18);
+        thirdUniversalALM.depositLiquidity(10e18, 10e18);
         {
             almReserves = thirdUniversalPool.getALMReserves(
                 address(thirdUniversalALM),
@@ -2151,21 +2143,9 @@ contract SwapRouterTest is Test, DeployPermit2 {
             assertEq(almReserves.tokenOutReserves, 10e18);
         }
 
-        thirdUniversalALM.setSwapSetupQuote(
-            isZeroToOne,
-            thirdUniversalPool.spotPriceTick(),
-            ALMLiquidityQuote(
-                10e18,
-                isZeroToOne
-                    ? PriceTickMath.MIN_PRICE_TICK
-                    : PriceTickMath.MAX_PRICE_TICK,
-                new bytes(0)
-            )
-        );
-
         weth.deposit{value: 10e18}();
         assertEq(weth.balanceOf(address(this)), 10e18);
-        fourthUniversalALM.depositLiquidity(false, 10e18, 10e18);
+        fourthUniversalALM.depositLiquidity(10e18, 10e18);
         assertEq(weth.balanceOf(address(this)), 0);
 
         {
@@ -2176,14 +2156,22 @@ contract SwapRouterTest is Test, DeployPermit2 {
             assertEq(almReserves.tokenInReserves, 10e18);
             assertEq(almReserves.tokenOutReserves, 10e18);
         }
-        fourthUniversalALM.setSwapSetupQuote(
-            isZeroToOne,
-            fourthUniversalPool.spotPriceTick(),
+    }
+
+    function _getUniversalPoolDefaultSwapData(
+        bool isZeroToOne,
+        uint256 amountOut
+    ) private returns (bytes[] memory externalContext) {
+        externalContext = new bytes[](1);
+
+        externalContext[0] = abi.encode(
+            true,
+            false,
+            0,
+            0,
             ALMLiquidityQuote(
-                10e18,
-                isZeroToOne
-                    ? PriceTickMath.MIN_PRICE_TICK
-                    : PriceTickMath.MAX_PRICE_TICK,
+                amountOut,
+                isZeroToOne ? int24(-1) : int24(1),
                 new bytes(0)
             )
         );
