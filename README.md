@@ -1,66 +1,31 @@
-## Foundry
+## Valantis Protocol: Periphery
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This repo contains the periphery smart contracts required to interact with Valantis Universal and Sovereign Pools. Currently only contains `ValantisSwapRouter`.
 
-Foundry consists of:
+`ValantisSwapRouter` supports:
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- Swaps between any two tokens, as long as they are routed through Valantis [Universal Pools](https://github.com/ValantisLabs/valantis-core/blob/main/src/pools/UniversalPool.sol) or [Sovereign Pools](https://docs.valantis.xyz/sovereign-pool-subpages).
+- Intent based swaps using [Permit2](https://github.com/Uniswap/permit2), allowing for fees to be charged at the source.
+- Batched swaps.
 
 ## Documentation
 
-https://book.getfoundry.sh/
+https://docs.valantis.xyz/
 
 ## Usage
 
-### Build
+### Install
 
 ```shell
-$ forge build
+$ git clone git@github.com:ValantisLabs/valantis-periphery.git
+```
+
+```shell
+$ forge install && yarn install
 ```
 
 ### Test
 
 ```shell
 $ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
 ```
