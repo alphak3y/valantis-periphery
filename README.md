@@ -1,3 +1,5 @@
+![Valantis](img/Valantis_Banner.png)
+
 ## Valantis Protocol: Periphery
 
 This repo contains the periphery smart contracts required to interact with Valantis Universal and Sovereign Pools. Currently only contains `ValantisSwapRouter`.
