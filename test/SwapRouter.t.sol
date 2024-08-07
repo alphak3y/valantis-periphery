@@ -404,6 +404,18 @@ contract SwapRouterTest is Test, DeployPermit2 {
         }
     }
 
+    function testDeploySwapRouter() public {
+        ValantisSwapRouter swapRouterDeployment = new ValantisSwapRouter(
+            address(protocolFactory),
+            address(weth),
+            address(permit2)
+        );
+
+        assertEq(swapRouterDeployment.protocolFactory(), address(protocolFactory));
+        assertEq(swapRouterDeployment.permit2(), address(permit2));
+        assertEq(swapRouterDeployment.WETH9(), address(weth));
+    }
+
     function testViewFunctions() public {
         assertEq(swapRouter.permit2(), address(permit2));
         assertEq(swapRouter.protocolFactory(), address(protocolFactory));
