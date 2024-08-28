@@ -1716,6 +1716,49 @@ contract SwapRouterTest is Test, DeployPermit2 {
         swapRouter.batchGaslessSwaps(params, signatures, fees);
     }
 
+    function testClaimExcessTokens() public {
+        address[] memory mockTokens = new address[](4);
+        mockTokens[0] = address(token0);
+        mockTokens[1] = address(token1);
+        mockTokens[2] = address(token2);
+        mockTokens[3] = address(token3);
+
+        // Can only be called by Protocol Manager
+        vm.prank(_owner);
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__claimExcessTokens_onlyProtocolManager.selector);
+        swapRouter.claimExcessTokens(mockTokens, MOCK_RECIPIENT);
+
+        // Tokens array cannot have zero length
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__claimExcessTokens_invalidTokensArrayLength.selector);
+        swapRouter.claimExcessTokens(new address[](0), MOCK_RECIPIENT);
+
+        // Recipient cannot be zero address
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__claimExcessTokens_invalidRecipient.selector);
+        swapRouter.claimExcessTokens(mockTokens, address(0));
+
+        mockTokens[3] = address(0);
+        // None of the tokens can be zero address
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__claimExcessTokens_invalidTokenAddress.selector);
+        swapRouter.claimExcessTokens(mockTokens, MOCK_RECIPIENT);
+        mockTokens[3] = address(token3);
+
+        // Claim of tokens should be successful,
+        // transferring all balance of token2 and token3 to MOCK_RECIPIENT
+        token2.transfer(address(swapRouter), 2e18);
+        token3.transfer(address(swapRouter), 3e18);
+        assertEq(token2.balanceOf(address(swapRouter)), 2e18);
+        assertEq(token3.balanceOf(address(swapRouter)), 3e18);
+
+        swapRouter.claimExcessTokens(mockTokens, MOCK_RECIPIENT);
+
+        assertEq(token0.balanceOf(MOCK_RECIPIENT), 0);
+        assertEq(token1.balanceOf(MOCK_RECIPIENT), 0);
+        assertEq(token2.balanceOf(MOCK_RECIPIENT), 2e18);
+        assertEq(token3.balanceOf(MOCK_RECIPIENT), 3e18);
+        assertEq(token2.balanceOf(address(swapRouter)), 0);
+        assertEq(token3.balanceOf(address(swapRouter)), 0);
+    }
+
     function _prepareSovereignPools() private {
         firstSovereignALM.depositLiquidity(10e18, 10e18, new bytes(0));
         {
