@@ -49,6 +49,10 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
 
     error ValantisSwapRouter__batchGaslessSwaps_invalidArrayLengths();
     error ValantisSwapRouter__batchGaslessSwaps_insufficientAmountOut();
+    error ValantisSwapRouter__claimExcessTokens_invalidRecipient();
+    error ValantisSwapRouter__claimExcessTokens_invalidTokenAddress();
+    error ValantisSwapRouter__claimExcessTokens_invalidTokensArrayLength();
+    error ValantisSwapRouter__claimExcessTokens_onlyProtocolManager();
     error ValantisSwapRouter__gaslessSwap_insufficientAmountOut();
     error ValantisSwapRouter___executeSwaps_invalidAmountSpecifiedFirstSwap();
     error ValantisSwapRouter___executeSingleSwapSovereignPool_invalidSovereignPool();
@@ -315,6 +319,31 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         // Refund any unspent Native token
         if (msg.value > 0) {
             _refundNativeToken(_directSwapParams.recipient);
+        }
+    }
+
+    /**
+        @notice Claims token balances which have been locked into this contract.
+        @dev Only callably by Protocol Manager, as specified by Protocol Factory.
+        @param _tokens Array of token address to claim balances for.
+        @param _recipient Recipient of incoming token balances. 
+     */
+    function claimExcessTokens(address[] memory _tokens, address _recipient) external nonReentrant {
+        // Only callable by Protocol Manager
+        if (msg.sender != _protocolFactory.protocolManager()) {
+            revert ValantisSwapRouter__claimExcessTokens_onlyProtocolManager();
+        }
+
+        if (_tokens.length == 0) revert ValantisSwapRouter__claimExcessTokens_invalidTokensArrayLength();
+
+        if (_recipient == address(0)) revert ValantisSwapRouter__claimExcessTokens_invalidRecipient();
+
+        for (uint256 i; i < _tokens.length; i++) {
+            IERC20 token = IERC20(_tokens[i]);
+            if (address(token) == address(0)) revert ValantisSwapRouter__claimExcessTokens_invalidTokenAddress();
+
+            uint256 balance = token.balanceOf(address(this));
+            if (balance > 0) token.safeTransfer(_recipient, balance);
         }
     }
 
