@@ -1,3 +1,4 @@
 forge-std/=lib/forge-std/src/
-valantis-core/=lib/valantis-core/
-permit2/=lib/permit2/
+@permit2/=lib/permit2/
+@solmate/=lib/solmate/
+@valantis-core/=lib/valantis-core/

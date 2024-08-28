@@ -1,19 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import { SafeCast } from '../../lib/valantis-core/lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol';
-import { IERC20 } from '../../lib/valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import {
-    SafeERC20
-} from '../../lib/valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
-import { IUniversalPool } from '../../lib/valantis-core/src/pools/interfaces/IUniversalPool.sol';
-import { ISovereignPool } from '../../lib/valantis-core/src/pools/interfaces/ISovereignPool.sol';
+import { SafeCast } from '@valantis-core/lib/openzeppelin-contracts/contracts/utils/math/SafeCast.sol';
+import { IERC20 } from '@valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import { SafeERC20 } from '@valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import { IUniversalPool } from '@valantis-core/src/pools/interfaces/IUniversalPool.sol';
+import { ISovereignPool } from '@valantis-core/src/pools/interfaces/ISovereignPool.sol';
 import {
     SovereignPoolSwapContextData,
     SovereignPoolSwapParams
-} from '../../lib/valantis-core/src/pools/structs/SovereignPoolStructs.sol';
-import { SwapParams } from '../../lib/valantis-core/src/pools/structs/UniversalPoolStructs.sol';
-import { ReentrancyGuard } from '../../lib/valantis-core/src/utils/ReentrancyGuard.sol';
+} from '@valantis-core/src/pools/structs/SovereignPoolStructs.sol';
+import { SwapParams } from '@valantis-core/src/pools/structs/UniversalPoolStructs.sol';
+import { ReentrancyGuard } from '@valantis-core/src/utils/ReentrancyGuard.sol';
 
 import { EIP712 } from './EIP712.sol';
 import { SignatureVerification } from './libraries/SignatureVerification.sol';
