@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {
-    ISovereignPoolSwapCallback
-} from '../../../lib/valantis-core/src/pools/interfaces/ISovereignPoolSwapCallback.sol';
-import {
-    IUniversalPoolSwapCallback
-} from '../../../lib/valantis-core/src/pools/interfaces/IUniversalPoolSwapCallback.sol';
+import { ISovereignPoolSwapCallback } from '@valantis-core/src/pools/interfaces/ISovereignPoolSwapCallback.sol';
+import { IUniversalPoolSwapCallback } from '@valantis-core/src/pools/interfaces/IUniversalPoolSwapCallback.sol';
 
 import { GaslessSwapParams, DirectSwapParams } from '../structs/ValantisSwapRouterStructs.sol';
 

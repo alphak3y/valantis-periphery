@@ -6,23 +6,23 @@ import 'forge-std/console.sol';
 
 import {
     ERC20PresetFixedSupply
-} from '../lib/valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol';
-import { WETH } from 'lib/solmate/src/tokens/WETH.sol';
-import { DeployPermit2 } from 'lib/permit2/test/utils/DeployPermit2.sol';
+} from '@valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol';
+import { WETH } from '@solmate/src/tokens/WETH.sol';
+import { DeployPermit2 } from '@permit2/test/utils/DeployPermit2.sol';
 
-import { ALMLiquidityQuote } from '../lib/valantis-core/src/ALM/structs/UniversalALMStructs.sol';
-import { MockSovereignALM } from '../lib/valantis-core/src/mocks/MockSovereignALM.sol';
-import { MockSovereignALMFactory } from '../lib/valantis-core/src/mocks/MockSovereignALMFactory.sol';
-import { SovereignPool } from '../lib/valantis-core/src/pools/SovereignPool.sol';
-import { SovereignPoolFactory } from '../lib/valantis-core/src/pools/factories/SovereignPoolFactory.sol';
-import { SovereignPoolConstructorArgs } from '../lib/valantis-core/src/pools/structs/SovereignPoolStructs.sol';
-import { MockUniversalALM } from '../lib/valantis-core/src/mocks/MockUniversalALM.sol';
-import { MockUniversalALMFactory } from '../lib/valantis-core/src/mocks/MockUniversalALMFactory.sol';
-import { UniversalPool, PoolState } from '../lib/valantis-core/src/pools/UniversalPool.sol';
-import { ALMReserves } from '../lib/valantis-core/src/ALM/structs/UniversalALMStructs.sol';
-import { UniversalPoolFactory } from '../lib/valantis-core/src/pools/factories/UniversalPoolFactory.sol';
-import { ProtocolFactory } from '../lib/valantis-core/src/protocol-factory/ProtocolFactory.sol';
-import { PriceTickMath } from '../lib/valantis-core/src/libraries/PriceTickMath.sol';
+import { ALMLiquidityQuote } from '@valantis-core/src/ALM/structs/UniversalALMStructs.sol';
+import { MockSovereignALM } from '@valantis-core/src/mocks/MockSovereignALM.sol';
+import { MockSovereignALMFactory } from '@valantis-core/src/mocks/MockSovereignALMFactory.sol';
+import { SovereignPool } from '@valantis-core/src/pools/SovereignPool.sol';
+import { SovereignPoolFactory } from '@valantis-core/src/pools/factories/SovereignPoolFactory.sol';
+import { SovereignPoolConstructorArgs } from '@valantis-core/src/pools/structs/SovereignPoolStructs.sol';
+import { MockUniversalALM } from '@valantis-core/src/mocks/MockUniversalALM.sol';
+import { MockUniversalALMFactory } from '@valantis-core/src/mocks/MockUniversalALMFactory.sol';
+import { UniversalPool, PoolState } from '@valantis-core/src/pools/UniversalPool.sol';
+import { ALMReserves } from '@valantis-core/src/ALM/structs/UniversalALMStructs.sol';
+import { UniversalPoolFactory } from '@valantis-core/src/pools/factories/UniversalPoolFactory.sol';
+import { ProtocolFactory } from '@valantis-core/src/protocol-factory/ProtocolFactory.sol';
+import { PriceTickMath } from '@valantis-core/src/libraries/PriceTickMath.sol';
 
 import { ValantisSwapRouter } from '../src/swap-router/ValantisSwapRouter.sol';
 import {
