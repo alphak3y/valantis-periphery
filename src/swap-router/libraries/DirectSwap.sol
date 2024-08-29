@@ -5,6 +5,7 @@ import { DirectSwapParams } from '../structs/ValantisSwapRouterStructs.sol';
 
 library DirectSwap {
     error DirectSwap__checkDirectSwapParams_arrayLengthMismatch();
+    error DirectSwap__checkDirectSwapParams_equalTokenInAndTokenOut();
     error DirectSwap__checkDirectSwapParams_incorrectNativeTokenAmountIn();
     error DirectSwap__checkDirectSwapParams_invalidArrayLength();
     error DirectSwap__checkDirectSwapParams_invalidDeadline();
@@ -21,6 +22,10 @@ library DirectSwap {
             directSwapParams.pools.length != directSwapParams.amountInSpecified.length ||
             directSwapParams.amountInSpecified.length != directSwapParams.payloads.length
         ) revert DirectSwap__checkDirectSwapParams_arrayLengthMismatch();
+
+        // tokenIn and tokenOut cannot be the same
+        if (directSwapParams.tokenIn == directSwapParams.tokenOut)
+            revert DirectSwap__checkDirectSwapParams_equalTokenInAndTokenOut();
 
         // In case tokenIn is ETH, we require that msg.value is equal to total amountIn specified
         if (msgValue > 0) {

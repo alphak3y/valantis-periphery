@@ -17,6 +17,7 @@ struct GaslessSwapParams {
     @notice Intent struct, to be EIP-712 signed by `owner`.
  */
 struct GaslessSwapIntent {
+    bool isTokenOutEth;
     address tokenIn;
     address tokenOut;
     address owner;
@@ -38,6 +39,7 @@ struct DirectSwapParams {
     address[] pools;
     uint256[] amountInSpecified;
     bytes[] payloads;
+    bool isTokenOutEth;
     address tokenIn;
     address tokenOut;
     address recipient;

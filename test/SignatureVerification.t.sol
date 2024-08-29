@@ -8,15 +8,12 @@ import { SignatureVerification } from 'src/swap-router/libraries/SignatureVerifi
 import { IERC1271 } from 'src/swap-router/interfaces/IERC1271.sol';
 
 contract SignatureVerificationHarness {
-
     function verify(bytes calldata signature, bytes32 hash, address claimedSigner) external view {
         SignatureVerification.verify(signature, hash, claimedSigner);
     }
-
 }
 
 contract SignatureVerificationTest is Test {
-
     bytes32 constant UPPER_BIT_MASK = (0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
 
     SignatureVerificationHarness harness;
@@ -25,17 +22,9 @@ contract SignatureVerificationTest is Test {
         harness = new SignatureVerificationHarness();
     }
 
-    function slice(
-        bytes memory _bytes,
-        uint256 _start,
-        uint256 _length
-    )
-        internal
-        pure
-        returns (bytes memory)
-    {
-        require(_length + 31 >= _length, "slice_overflow");
-        require(_bytes.length >= _start + _length, "slice_outOfBounds");
+    function slice(bytes memory _bytes, uint256 _start, uint256 _length) internal pure returns (bytes memory) {
+        require(_length + 31 >= _length, 'slice_overflow');
+        require(_bytes.length >= _start + _length, 'slice_outOfBounds');
 
         bytes memory tempBytes;
 
@@ -95,7 +84,6 @@ contract SignatureVerificationTest is Test {
     }
 
     function test_verify_reverts() public {
-
         uint256 signerPrivateKey = 0xA11CE;
 
         bytes32 randomHash = keccak256(abi.encode(1, 2));
@@ -104,7 +92,12 @@ contract SignatureVerificationTest is Test {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, randomHash);
 
-        bytes memory longSignature = abi.encodePacked(r, s | 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0, v);
+        // solhint-disable-next-line max-line-length
+        bytes memory longSignature = abi.encodePacked(
+            r,
+            s | 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0,
+            v
+        );
 
         bytes memory invalidSignature = abi.encodePacked(longSignature, uint256(1));
 
@@ -126,7 +119,7 @@ contract SignatureVerificationTest is Test {
         vm.etch(signer, abi.encode(0x12));
 
         vm.mockCall(
-            signer, 
+            signer,
             0,
             abi.encodeWithSelector(IERC1271.isValidSignature.selector, randomHash, signature),
             abi.encode(bytes4(abi.encode(12)))
@@ -137,15 +130,12 @@ contract SignatureVerificationTest is Test {
         harness.verify(signature, randomHash, signer);
 
         vm.mockCall(
-            signer, 
+            signer,
             0,
             abi.encodeWithSelector(IERC1271.isValidSignature.selector, randomHash, signature),
             abi.encode(IERC1271.isValidSignature.selector)
         );
 
         harness.verify(signature, randomHash, signer);
-
     }
-
-
 }

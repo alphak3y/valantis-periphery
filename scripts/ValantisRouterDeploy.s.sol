@@ -5,9 +5,7 @@ import 'forge-std/Script.sol';
 import { ValantisSwapRouter } from '../src/swap-router/ValantisSwapRouter.sol';
 
 contract ValantisRouterDeploy is Script {
-
     function run() external {
-        
         uint256 deployerPrivateKey = vm.envUint('DEPLOYER_PRIVATE_KEY');
         address WETH = vm.envAddress('WETH');
         address protocolFactory = vm.envAddress('PROTOCOL_FACTORY');
@@ -19,5 +17,4 @@ contract ValantisRouterDeploy is Script {
 
         vm.stopBroadcast();
     }
-
 }
