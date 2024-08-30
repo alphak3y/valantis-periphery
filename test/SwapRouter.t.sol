@@ -1694,6 +1694,156 @@ contract SwapRouterTest is Test, DeployPermit2 {
         }
     }
 
+    /**
+        @notice Test gasless swap over multiple Universal and Sovereign pools, into ETH.
+     */
+    function testGaslessSwapUniversalAndSovereignPoolMultiSwapIntoETH() public {
+        bool isZeroToOne = true;
+
+        _prepareUniversalPools(isZeroToOne);
+        _prepareSovereignPools();
+
+        address recipient = MOCK_RECIPIENT;
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 1e16;
+        bool isEthTokenOut = true;
+
+        bool[] memory isUniversalPool = new bool[](6);
+        isUniversalPool[0] = true;
+        isUniversalPool[1] = true;
+        isUniversalPool[2] = true;
+
+        address[] memory pools = new address[](6);
+        pools[0] = address(secondUniversalPool);
+        pools[1] = address(thirdUniversalPool);
+        pools[2] = address(fourthUniversalPool);
+        pools[3] = address(secondSovereignPool);
+        pools[4] = address(thirdSovereignPool);
+        pools[5] = address(fourthSovereignPool);
+
+        uint256[] memory amountInSpecified = new uint256[](6);
+        amountInSpecified[0] = amountIn / 2;
+        amountInSpecified[3] = amountIn - amountInSpecified[0];
+
+        bytes[] memory payloads = new bytes[](6);
+        payloads[0] = abi.encode(
+            UniversalPoolSwapPayload(
+                isZeroToOne,
+                address(swapRouter),
+                isZeroToOne ? PriceTickMath.MIN_PRICE_TICK : PriceTickMath.MAX_PRICE_TICK,
+                0,
+                new uint8[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountInSpecified[0]),
+                new bytes(0)
+            )
+        );
+        payloads[1] = abi.encode(
+            UniversalPoolSwapPayload(
+                isZeroToOne,
+                address(swapRouter),
+                isZeroToOne ? PriceTickMath.MIN_PRICE_TICK : PriceTickMath.MAX_PRICE_TICK,
+                0,
+                new uint8[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountInSpecified[0]),
+                new bytes(0)
+            )
+        );
+        payloads[2] = abi.encode(
+            UniversalPoolSwapPayload(
+                isZeroToOne,
+                recipient,
+                isZeroToOne ? PriceTickMath.MIN_PRICE_TICK : PriceTickMath.MAX_PRICE_TICK,
+                0,
+                new uint8[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountInSpecified[0]),
+                new bytes(0)
+            )
+        );
+        payloads[3] = abi.encode(
+            SovereignPoolSwapPayload(
+                isZeroToOne,
+                address(swapRouter),
+                address(token2),
+                0,
+                new bytes(0),
+                new bytes(0),
+                new bytes(0)
+            )
+        );
+        payloads[4] = abi.encode(
+            SovereignPoolSwapPayload(
+                isZeroToOne,
+                address(swapRouter),
+                address(token3),
+                0,
+                new bytes(0),
+                new bytes(0),
+                new bytes(0)
+            )
+        );
+        payloads[5] = abi.encode(
+            SovereignPoolSwapPayload(
+                isZeroToOne,
+                address(swapRouter),
+                address(weth),
+                0,
+                new bytes(0),
+                new bytes(0),
+                new bytes(0)
+            )
+        );
+
+        // Should revert on insufficient tokenOut amount received
+        GaslessSwapIntent memory gaslessSwapIntent = GaslessSwapIntent(
+            isEthTokenOut,
+            address(token1),
+            address(weth),
+            _owner,
+            recipient,
+            address(this),
+            address(token0),
+            amountIn,
+            amountOutMin,
+            1e15,
+            0,
+            block.timestamp
+        );
+
+        (bytes memory ownerSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
+
+        GaslessSwapParams memory swapParams = GaslessSwapParams(
+            isUniversalPool,
+            pools,
+            amountInSpecified,
+            payloads,
+            address(this),
+            gaslessSwapIntent
+        );
+
+        swapParams.intent.tokenOut = address(token2);
+        // Should revert if tokenOut is not WETH
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter___gaslessSwap_tokenOutNotWeth.selector);
+        swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
+
+        swapParams.intent.tokenOut = address(weth);
+
+        // Should revert if chain id changes after signing
+        uint256 chainId = block.chainid;
+
+        (ownerSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
+
+        vm.chainId(123);
+
+        vm.expectRevert(SignatureVerification.InvalidSigner.selector);
+        swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
+
+        vm.chainId(chainId);
+
+        uint256 amountOut = swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
+        // Recipient must receive amountOut of ETH
+        assertEq(recipient.balance, amountOut);
+    }
+
     function testBatchGaslessSwaps() public {
         bool isZeroToOne = true;
 

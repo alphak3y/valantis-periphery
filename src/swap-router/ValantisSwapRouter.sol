@@ -149,7 +149,8 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
      ***********************************************/
 
     /**
-        @dev Required due to `WETH9.withdraw`, for swaps into ETH.
+        @dev Required for swaps where tokenOut is ETH.
+        @dev Only callable by `WETH9`.
      */
     receive() external payable {
         if (msg.sender != WETH9) revert ValantisSwapRouter__receive_onlyWeth();
