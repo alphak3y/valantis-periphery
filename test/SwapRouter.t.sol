@@ -82,7 +82,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     bytes32 public constant GASLESS_SWAP_INTENT_TYPEHASH =
         keccak256(
             // solhint-disable-next-line max-line-length
-            'GaslessSwapIntent(address tokenIn,address tokenOut,address owner,address recipient,address authorizedSender,address feeToken,uint256 amountIn,uint256 amountOutMin,uint128 maxFee,uint256 nonce,uint256 deadline)'
+            'GaslessSwapIntent(bool isTokenOutEth,address tokenIn,address tokenOut,address owner,address recipient,address authorizedSender,address feeToken,uint256 amountIn,uint256 amountOutMin,uint128 maxFee,uint256 nonce,uint256 deadline)'
         );
 
     address _owner;
@@ -416,10 +416,22 @@ contract SwapRouterTest is Test, DeployPermit2 {
         assertEq(swapRouterDeployment.WETH9(), address(weth));
     }
 
-    function testViewFunctions() public {
+    function testViewFunctions() public view {
         assertEq(swapRouter.permit2(), address(permit2));
         assertEq(swapRouter.protocolFactory(), address(protocolFactory));
         assertEq(swapRouter.isLocked(), false);
+    }
+
+    function testReceive() public {
+        // Only WETH contract can directly send ETH to swapRouter
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__receive_onlyWeth.selector);
+        (bool success, ) = address(swapRouter).call{ value: 1 ether }('');
+
+        vm.prank(swapRouter.WETH9());
+
+        (success, /* bytes memory data */) = address(swapRouter).call{ value: 1 ether }('');
+        assertTrue(success);
+        assertEq(address(swapRouter).balance, 1 ether);
     }
 
     function testUniversalPoolSwapCallback() public {
@@ -475,6 +487,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
+            false,
             tokenIn,
             tokenOut,
             recipient,
@@ -507,6 +520,12 @@ contract SwapRouterTest is Test, DeployPermit2 {
         vm.expectRevert(DirectSwap.DirectSwap__checkDirectSwapParams_arrayLengthMismatch.selector);
         swapRouter.swap(swapParams);
         swapParams.pools = pools;
+
+        // Should revert if tokenIn == tokenOut
+        swapParams.tokenOut = swapParams.tokenIn;
+        vm.expectRevert(DirectSwap.DirectSwap__checkDirectSwapParams_equalTokenInAndTokenOut.selector);
+        swapRouter.swap(swapParams);
+        swapParams.tokenOut = tokenOut;
 
         swapParams.amountInSpecified = new uint256[](0);
         vm.expectRevert(DirectSwap.DirectSwap__checkDirectSwapParams_arrayLengthMismatch.selector);
@@ -566,6 +585,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
+            false,
             tokenIn,
             tokenOut,
             recipient,
@@ -604,7 +624,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         revertOnReceive = true;
         fourthSovereignALM.setQuotePartialFill(true);
-        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter___refundNativeToken_refundFailed.selector);
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter___sendNativeToken_ethTransferFailed.selector);
         amountOut = swapRouter.swap{ value: amountIn }(swapParams);
 
         revertOnReceive = false;
@@ -650,6 +670,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
+            false,
             tokenIn,
             tokenOut,
             recipient,
@@ -668,6 +689,94 @@ contract SwapRouterTest is Test, DeployPermit2 {
         assert(amountOut >= amountOutMin);
         assertEq(token3.balanceOf(recipient), amountOut);
         assertEq(userPreBalance - weth.balanceOf(address(this)), amountIn);
+    }
+
+    /**
+        @notice Test swap router over one Sovereign Pool, ETH as output token.
+     */
+    function testSovereignPoolSwapSingleToETH() public {
+        _prepareSovereignPools();
+
+        address tokenIn = address(token3);
+        address tokenOut = address(weth);
+        address recipient = MOCK_RECIPIENT;
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 1e17;
+        uint32 deadline = uint32(block.timestamp);
+        bool isTokenOutEth = true;
+
+        bool[] memory isUniversalPool = new bool[](1);
+        isUniversalPool[0] = false;
+
+        address[] memory pools = new address[](1);
+        pools[0] = address(fourthSovereignPool);
+
+        uint256[] memory amountInSpecified = new uint256[](1);
+        amountInSpecified[0] = amountIn;
+
+        bytes[] memory payloads = new bytes[](1);
+        payloads[0] = abi.encode(
+            SovereignPoolSwapPayload(
+                true,
+                address(swapRouter), // WETH amount from swap first goes into swapRouter
+                address(weth),
+                amountOutMin,
+                new bytes(0),
+                new bytes(0),
+                new bytes(0)
+            )
+        );
+
+        DirectSwapParams memory swapParams = DirectSwapParams(
+            isUniversalPool,
+            pools,
+            amountInSpecified,
+            payloads,
+            isTokenOutEth,
+            tokenIn,
+            tokenOut,
+            recipient,
+            amountOutMin,
+            deadline
+        );
+
+        swapParams.tokenOut = tokenIn;
+        // If recipient wants ETH, tokenOut must be specified as WETH
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__swap_tokenOutNotWeth.selector);
+        swapRouter.swap(swapParams);
+
+        swapParams.tokenOut = tokenOut;
+
+        payloads[0] = abi.encode(
+            SovereignPoolSwapPayload(
+                true,
+                recipient,
+                address(weth),
+                amountOutMin,
+                new bytes(0),
+                new bytes(0),
+                new bytes(0)
+            )
+        );
+        // WETH amount cannot go directly from pool to recipient
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__swap_insufficientAmountOut.selector);
+        swapRouter.swap(swapParams);
+
+        payloads[0] = abi.encode(
+            SovereignPoolSwapPayload(
+                true,
+                address(swapRouter),
+                address(weth),
+                amountOutMin,
+                new bytes(0),
+                new bytes(0),
+                new bytes(0)
+            )
+        );
+
+        uint256 amountOut = swapRouter.swap(swapParams);
+        assert(amountOut >= amountOutMin);
+        assertEq(recipient.balance, amountOut);
     }
 
     /**
@@ -728,6 +837,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
+            false,
             tokenIn,
             tokenOut,
             recipient,
@@ -822,6 +932,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
+            false,
             tokenIn,
             tokenOut,
             recipient,
@@ -908,6 +1019,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
+            false,
             tokenIn,
             tokenOut,
             recipient,
@@ -970,6 +1082,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
+            false,
             tokenIn,
             tokenOut,
             recipient,
@@ -1064,14 +1177,13 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
+            false,
             tokenIn,
             tokenOut,
             recipient,
             amountOutMin,
             deadline
         );
-
-        token0.approve(address(swapRouter), amountIn);
 
         // Should revert if amountIn of first swap is 0
         swapParams.amountInSpecified[0] = 0;
@@ -1168,6 +1280,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
+            false,
             tokenIn,
             tokenOut,
             recipient,
@@ -1264,6 +1377,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
+            false,
             tokenIn,
             tokenOut,
             recipient,
@@ -1390,6 +1504,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
+            false,
             tokenIn,
             tokenOut,
             recipient,
@@ -1507,6 +1622,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         // Should revert on insufficient tokenOut amount received
         GaslessSwapIntent memory gaslessSwapIntent = GaslessSwapIntent(
+            false,
             address(token0),
             address(token3),
             _owner,
@@ -1531,13 +1647,14 @@ contract SwapRouterTest is Test, DeployPermit2 {
             gaslessSwapIntent
         );
 
-        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__gaslessSwap_insufficientAmountOut.selector);
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter___gaslessSwap_insufficientAmountOut.selector);
         swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
 
         // Should revert if chain id changes after signing
         uint256 chainId = block.chainid;
 
         gaslessSwapIntent = GaslessSwapIntent(
+            false,
             address(token0),
             address(token3),
             _owner,
@@ -1578,6 +1695,156 @@ contract SwapRouterTest is Test, DeployPermit2 {
         }
     }
 
+    /**
+        @notice Test gasless swap over multiple Universal and Sovereign pools, into ETH.
+     */
+    function testGaslessSwapUniversalAndSovereignPoolMultiSwapIntoETH() public {
+        bool isZeroToOne = true;
+
+        _prepareUniversalPools(isZeroToOne);
+        _prepareSovereignPools();
+
+        address recipient = MOCK_RECIPIENT;
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 1e16;
+        bool isEthTokenOut = true;
+
+        bool[] memory isUniversalPool = new bool[](6);
+        isUniversalPool[0] = true;
+        isUniversalPool[1] = true;
+        isUniversalPool[2] = true;
+
+        address[] memory pools = new address[](6);
+        pools[0] = address(secondUniversalPool);
+        pools[1] = address(thirdUniversalPool);
+        pools[2] = address(fourthUniversalPool);
+        pools[3] = address(secondSovereignPool);
+        pools[4] = address(thirdSovereignPool);
+        pools[5] = address(fourthSovereignPool);
+
+        uint256[] memory amountInSpecified = new uint256[](6);
+        amountInSpecified[0] = amountIn / 2;
+        amountInSpecified[3] = amountIn - amountInSpecified[0];
+
+        bytes[] memory payloads = new bytes[](6);
+        payloads[0] = abi.encode(
+            UniversalPoolSwapPayload(
+                isZeroToOne,
+                address(swapRouter),
+                isZeroToOne ? PriceTickMath.MIN_PRICE_TICK : PriceTickMath.MAX_PRICE_TICK,
+                0,
+                new uint8[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountInSpecified[0]),
+                new bytes(0)
+            )
+        );
+        payloads[1] = abi.encode(
+            UniversalPoolSwapPayload(
+                isZeroToOne,
+                address(swapRouter),
+                isZeroToOne ? PriceTickMath.MIN_PRICE_TICK : PriceTickMath.MAX_PRICE_TICK,
+                0,
+                new uint8[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountInSpecified[0]),
+                new bytes(0)
+            )
+        );
+        payloads[2] = abi.encode(
+            UniversalPoolSwapPayload(
+                isZeroToOne,
+                recipient,
+                isZeroToOne ? PriceTickMath.MIN_PRICE_TICK : PriceTickMath.MAX_PRICE_TICK,
+                0,
+                new uint8[](1),
+                _getUniversalPoolDefaultSwapData(isZeroToOne, amountInSpecified[0]),
+                new bytes(0)
+            )
+        );
+        payloads[3] = abi.encode(
+            SovereignPoolSwapPayload(
+                isZeroToOne,
+                address(swapRouter),
+                address(token2),
+                0,
+                new bytes(0),
+                new bytes(0),
+                new bytes(0)
+            )
+        );
+        payloads[4] = abi.encode(
+            SovereignPoolSwapPayload(
+                isZeroToOne,
+                address(swapRouter),
+                address(token3),
+                0,
+                new bytes(0),
+                new bytes(0),
+                new bytes(0)
+            )
+        );
+        payloads[5] = abi.encode(
+            SovereignPoolSwapPayload(
+                isZeroToOne,
+                address(swapRouter),
+                address(weth),
+                0,
+                new bytes(0),
+                new bytes(0),
+                new bytes(0)
+            )
+        );
+
+        // Should revert on insufficient tokenOut amount received
+        GaslessSwapIntent memory gaslessSwapIntent = GaslessSwapIntent(
+            isEthTokenOut,
+            address(token1),
+            address(weth),
+            _owner,
+            recipient,
+            address(this),
+            address(token0),
+            amountIn,
+            amountOutMin,
+            1e15,
+            0,
+            block.timestamp
+        );
+
+        (bytes memory ownerSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
+
+        GaslessSwapParams memory swapParams = GaslessSwapParams(
+            isUniversalPool,
+            pools,
+            amountInSpecified,
+            payloads,
+            address(this),
+            gaslessSwapIntent
+        );
+
+        swapParams.intent.tokenOut = address(token2);
+        // Should revert if tokenOut is not WETH
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter___gaslessSwap_tokenOutNotWeth.selector);
+        swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
+
+        swapParams.intent.tokenOut = address(weth);
+
+        // Should revert if chain id changes after signing
+        uint256 chainId = block.chainid;
+
+        (ownerSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
+
+        vm.chainId(123);
+
+        vm.expectRevert(SignatureVerification.InvalidSigner.selector);
+        swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
+
+        vm.chainId(chainId);
+
+        uint256 amountOut = swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
+        // Recipient must receive amountOut of ETH
+        assertEq(recipient.balance, amountOut);
+    }
+
     function testBatchGaslessSwaps() public {
         bool isZeroToOne = true;
 
@@ -1611,6 +1878,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         // First user's swap intent
         GaslessSwapIntent memory firstGaslessSwapIntent = GaslessSwapIntent(
+            false,
             address(token0),
             address(token1),
             _owner,
@@ -1628,6 +1896,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         // Second user's swap intent
         GaslessSwapIntent memory secondGaslessSwapIntent = GaslessSwapIntent(
+            false,
             address(token0),
             address(token1),
             _owner,
@@ -1697,7 +1966,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         signatures[0] = firstSignature;
         signatures[1] = secondSignature;
 
-        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__batchGaslessSwaps_insufficientAmountOut.selector);
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter___gaslessSwap_insufficientAmountOut.selector);
         swapRouter.batchGaslessSwaps(params, signatures, fees);
 
         firstGaslessSwapIntent.amountOutMin = amountOutMin;
@@ -1829,7 +2098,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     function _getUniversalPoolDefaultSwapData(
         bool isZeroToOne,
         uint256 amountOut
-    ) private returns (bytes[] memory externalContext) {
+    ) private pure returns (bytes[] memory externalContext) {
         externalContext = new bytes[](1);
 
         externalContext[0] = abi.encode(
@@ -1844,7 +2113,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     function _getIntentsSignatureAndHash(
         uint256 privateKey,
         GaslessSwapIntent memory swapIntent
-    ) private returns (bytes memory signature, bytes32 eip712IntentHash) {
+    ) private view returns (bytes memory signature, bytes32 eip712IntentHash) {
         bytes32 intentHash = keccak256(abi.encode(GASLESS_SWAP_INTENT_TYPEHASH, swapIntent));
         eip712IntentHash = keccak256(abi.encodePacked('\x19\x01', swapRouter.DOMAIN_SEPARATOR(), intentHash));
 
