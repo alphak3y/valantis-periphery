@@ -416,7 +416,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         assertEq(swapRouterDeployment.WETH9(), address(weth));
     }
 
-    function testViewFunctions() public {
+    function testViewFunctions() public view {
         assertEq(swapRouter.permit2(), address(permit2));
         assertEq(swapRouter.protocolFactory(), address(protocolFactory));
         assertEq(swapRouter.isLocked(), false);
@@ -425,10 +425,11 @@ contract SwapRouterTest is Test, DeployPermit2 {
     function testReceive() public {
         // Only WETH contract can directly send ETH to swapRouter
         vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__receive_onlyWeth.selector);
-        address(swapRouter).call{ value: 1 ether }('');
+        (bool success, ) = address(swapRouter).call{ value: 1 ether }('');
 
         vm.prank(swapRouter.WETH9());
-        (bool success, ) = address(swapRouter).call{ value: 1 ether }('');
+
+        (success, /* bytes memory data */) = address(swapRouter).call{ value: 1 ether }('');
         assertTrue(success);
         assertEq(address(swapRouter).balance, 1 ether);
     }
@@ -2097,7 +2098,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     function _getUniversalPoolDefaultSwapData(
         bool isZeroToOne,
         uint256 amountOut
-    ) private returns (bytes[] memory externalContext) {
+    ) private pure returns (bytes[] memory externalContext) {
         externalContext = new bytes[](1);
 
         externalContext[0] = abi.encode(
@@ -2112,7 +2113,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     function _getIntentsSignatureAndHash(
         uint256 privateKey,
         GaslessSwapIntent memory swapIntent
-    ) private returns (bytes memory signature, bytes32 eip712IntentHash) {
+    ) private view returns (bytes memory signature, bytes32 eip712IntentHash) {
         bytes32 intentHash = keccak256(abi.encode(GASLESS_SWAP_INTENT_TYPEHASH, swapIntent));
         eip712IntentHash = keccak256(abi.encodePacked('\x19\x01', swapRouter.DOMAIN_SEPARATOR(), intentHash));
 
