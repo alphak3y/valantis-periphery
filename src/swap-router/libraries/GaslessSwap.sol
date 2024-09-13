@@ -9,6 +9,7 @@ library GaslessSwap {
     error GaslessSwap__checkGaslessSwapParams_invalidAmountInSpecifiedArray();
     error GaslessSwap__checkGaslessSwapParams_invalidArrayLength();
     error GaslessSwap__checkGaslessSwapParams_invalidDeadline();
+    error GaslessSwap__checkGaslessSwapParams_invalidFeeRecipient();
     error GaslessSwap__checkGaslessSwapParams_senderNotAuthorized();
 
     function checkGaslessSwapParams(GaslessSwapParams calldata gaslessSwapParams) internal view {
@@ -18,6 +19,9 @@ library GaslessSwap {
         if (gaslessSwapParams.isUniversalPool.length == 0) {
             revert GaslessSwap__checkGaslessSwapParams_invalidArrayLength();
         }
+        
+        if (gaslessSwapParams.feeRecipient == address(0))
+            revert GaslessSwap__checkGaslessSwapParams_invalidFeeRecipient();
 
         if (
             gaslessSwapParams.isUniversalPool.length != gaslessSwapParams.pools.length ||
