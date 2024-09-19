@@ -46,16 +46,15 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
      ***********************************************/
 
     error ValantisSwapRouter__batchGaslessSwaps_invalidArrayLengths();
-    error ValantisSwapRouter__claimExcessTokens_invalidRecipient();
-    error ValantisSwapRouter__claimExcessTokens_invalidTokenAddress();
-    error ValantisSwapRouter__claimExcessTokens_invalidTokensArrayLength();
-    error ValantisSwapRouter__claimExcessTokens_onlyProtocolManager();
     error ValantisSwapRouter__receive_onlyWeth();
     error ValantisSwapRouter__sovereignPoolSwapCallback_invalidTokenIn();
     error ValantisSwapRouter__sovereignPoolSwapCallback_poolNotAllowed();
     error ValantisSwapRouter__swap_invalidNativeTokenSwap();
     error ValantisSwapRouter__swap_insufficientAmountOut();
     error ValantisSwapRouter__swap_tokenOutNotWeth();
+    error ValantisSwapRouter__sweep_invalidRecipient();
+    error ValantisSwapRouter__sweep_invalidTokenAddress();
+    error ValantisSwapRouter__sweep_invalidTokensArrayLength();
     error ValantisSwapRouter__universalPoolSwapCallback_invalidTokenIn();
     error ValantisSwapRouter__universalPoolSwapCallback_poolNotAllowed();
     error ValantisSwapRouter___executeSwaps_invalidAmountSpecifiedFirstSwap();
@@ -314,24 +313,19 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
     }
 
     /**
-        @notice Claims token balances which have been locked into this contract.
-        @dev Only callable by Protocol Manager, as specified by Protocol Factory.
+        @notice Sweep token balances which have been locked into this contract.
+        @dev Anyone can call this to sweep tokens.
         @param _tokens Array of token address to claim balances for.
         @param _recipient Recipient of incoming token balances. 
      */
-    function claimExcessTokens(address[] memory _tokens, address _recipient) external nonReentrant {
-        // Only callable by Protocol Manager
-        if (msg.sender != _protocolFactory.protocolManager()) {
-            revert ValantisSwapRouter__claimExcessTokens_onlyProtocolManager();
-        }
+    function sweep(address[] memory _tokens, address _recipient) external nonReentrant {
+        if (_tokens.length == 0) revert ValantisSwapRouter__sweep_invalidTokensArrayLength();
 
-        if (_tokens.length == 0) revert ValantisSwapRouter__claimExcessTokens_invalidTokensArrayLength();
-
-        if (_recipient == address(0)) revert ValantisSwapRouter__claimExcessTokens_invalidRecipient();
+        if (_recipient == address(0)) revert ValantisSwapRouter__sweep_invalidRecipient();
 
         for (uint256 i; i < _tokens.length; i++) {
             IERC20 token = IERC20(_tokens[i]);
-            if (address(token) == address(0)) revert ValantisSwapRouter__claimExcessTokens_invalidTokenAddress();
+            if (address(token) == address(0)) revert ValantisSwapRouter__sweep_invalidTokenAddress();
 
             uint256 balance = token.balanceOf(address(this));
             if (balance > 0) token.safeTransfer(_recipient, balance);
