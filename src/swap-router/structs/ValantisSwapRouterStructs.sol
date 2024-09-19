@@ -9,7 +9,6 @@ struct GaslessSwapParams {
     address[] pools;
     uint256[] amountInSpecified;
     bytes[] payloads;
-    address feeRecipient;
     GaslessSwapIntent intent;
 }
 

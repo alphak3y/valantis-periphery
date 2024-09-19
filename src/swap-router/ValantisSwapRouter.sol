@@ -410,7 +410,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         if (fee > 0) {
             _permit2.transferFrom(
                 gaslessSwapParams.intent.owner,
-                gaslessSwapParams.feeRecipient,
+                gaslessSwapParams.intent.authorizedSender,
                 uint160(fee),
                 gaslessSwapParams.intent.feeToken
             );
