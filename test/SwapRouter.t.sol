@@ -1977,30 +1977,25 @@ contract SwapRouterTest is Test, DeployPermit2 {
         swapRouter.batchGaslessSwaps(params, signatures, fees);
     }
 
-    function testClaimExcessTokens() public {
+    function testSweep() public {
         address[] memory mockTokens = new address[](4);
         mockTokens[0] = address(token0);
         mockTokens[1] = address(token1);
         mockTokens[2] = address(token2);
         mockTokens[3] = address(token3);
 
-        // Can only be called by Protocol Manager
-        vm.prank(_owner);
-        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__claimExcessTokens_onlyProtocolManager.selector);
-        swapRouter.claimExcessTokens(mockTokens, MOCK_RECIPIENT);
-
         // Tokens array cannot have zero length
-        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__claimExcessTokens_invalidTokensArrayLength.selector);
-        swapRouter.claimExcessTokens(new address[](0), MOCK_RECIPIENT);
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__sweep_invalidTokensArrayLength.selector);
+        swapRouter.sweep(new address[](0), MOCK_RECIPIENT);
 
         // Recipient cannot be zero address
-        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__claimExcessTokens_invalidRecipient.selector);
-        swapRouter.claimExcessTokens(mockTokens, address(0));
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__sweep_invalidRecipient.selector);
+        swapRouter.sweep(mockTokens, address(0));
 
         mockTokens[3] = address(0);
         // None of the tokens can be zero address
-        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__claimExcessTokens_invalidTokenAddress.selector);
-        swapRouter.claimExcessTokens(mockTokens, MOCK_RECIPIENT);
+        vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__sweep_invalidTokenAddress.selector);
+        swapRouter.sweep(mockTokens, MOCK_RECIPIENT);
         mockTokens[3] = address(token3);
 
         // Claim of tokens should be successful,
@@ -2010,7 +2005,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         assertEq(token2.balanceOf(address(swapRouter)), 2e18);
         assertEq(token3.balanceOf(address(swapRouter)), 3e18);
 
-        swapRouter.claimExcessTokens(mockTokens, MOCK_RECIPIENT);
+        swapRouter.sweep(mockTokens, MOCK_RECIPIENT);
 
         assertEq(token0.balanceOf(MOCK_RECIPIENT), 0);
         assertEq(token1.balanceOf(MOCK_RECIPIENT), 0);
