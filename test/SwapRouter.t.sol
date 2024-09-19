@@ -1643,7 +1643,6 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
-            address(this),
             gaslessSwapIntent
         );
 
@@ -1675,7 +1674,6 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
-            address(this),
             gaslessSwapIntent
         );
 
@@ -1817,7 +1815,6 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
-            address(this),
             gaslessSwapIntent
         );
 
@@ -1921,7 +1918,6 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
-            address(this),
             firstGaslessSwapIntent
         );
         params[1] = GaslessSwapParams(
@@ -1929,7 +1925,6 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
-            address(this),
             secondGaslessSwapIntent
         );
 
@@ -1951,7 +1946,6 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
-            address(this),
             firstGaslessSwapIntent
         );
         params[1] = GaslessSwapParams(
@@ -1959,7 +1953,6 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
-            address(this),
             secondGaslessSwapIntent
         );
 
@@ -1975,7 +1968,6 @@ contract SwapRouterTest is Test, DeployPermit2 {
             pools,
             amountInSpecified,
             payloads,
-            address(this),
             firstGaslessSwapIntent
         );
 

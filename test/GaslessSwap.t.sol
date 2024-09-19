@@ -39,11 +39,6 @@ contract GaslessSwapParamsTest is Test {
 
         params.isUniversalPool = new bool[](3);
 
-        vm.expectRevert(GaslessSwap.GaslessSwap__checkGaslessSwapParams_invalidFeeRecipient.selector);
-        harness.checkGaslessSwapParams(params);
-
-        params.feeRecipient = address(0x789);
-
         vm.expectRevert(GaslessSwap.GaslessSwap__checkGaslessSwapParams_arrayLengthMismatch.selector);
         harness.checkGaslessSwapParams(params);
 
