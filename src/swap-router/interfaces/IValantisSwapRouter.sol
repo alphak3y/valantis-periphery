@@ -7,6 +7,28 @@ import { IUniversalPoolSwapCallback } from '@valantis-core/src/pools/interfaces/
 import { GaslessSwapParams, DirectSwapParams } from '../structs/ValantisSwapRouterStructs.sol';
 
 interface IValantisSwapRouter is ISovereignPoolSwapCallback, IUniversalPoolSwapCallback {
+    event DirectSwapLog(
+        address user,
+        address recipient,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOut,
+        bool isTokenInEth,
+        bool isTokenOutEth
+    );
+
+    event GaslessSwapLog(
+        address user,
+        address solver,
+        address recipient,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOut,
+        bool isTokenOutEth
+    );
+
     // solhint-disable-next-line func-name-mixedcase
     function WETH9() external view returns (address);
 

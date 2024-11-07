@@ -279,7 +279,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         uint256 tokenOutPreBalance = IERC20(_directSwapParams.tokenOut).balanceOf(
             _directSwapParams.isTokenOutEth ? address(this) : _directSwapParams.recipient
         );
-        uint256 amountOutTotal = _executeSwaps(
+        (uint256 amountInTotal, uint256 amountOutTotal) = _executeSwaps(
             ExecuteSwapParams({
                 isUniversalPool: _directSwapParams.isUniversalPool,
                 pools: _directSwapParams.pools,
@@ -310,6 +310,17 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
             IWETH9(WETH9).withdraw(amountOut);
             _sendNativeToken(_directSwapParams.recipient, amountOut);
         }
+
+        emit DirectSwapLog(
+            msg.sender,
+            _directSwapParams.recipient,
+            _directSwapParams.tokenIn,
+            _directSwapParams.tokenOut,
+            amountInTotal,
+            amountOutTotal,
+            msg.value > 0,
+            _directSwapParams.isTokenOutEth
+        );
     }
 
     /**
@@ -349,7 +360,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
             gaslessSwapParams.intent.isTokenOutEth ? address(this) : gaslessSwapParams.intent.recipient
         );
 
-        uint256 amountOutTotal = _executeGaslessSwap(gaslessSwapParams, ownerSignature, fee);
+        (uint256 amountInTotal, uint256 amountOutTotal) = _executeGaslessSwap(gaslessSwapParams, ownerSignature, fee);
 
         amountOut =
             IERC20(gaslessSwapParams.intent.tokenOut).balanceOf(
@@ -368,13 +379,24 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
             IWETH9(WETH9).withdraw(amountOut);
             _sendNativeToken(gaslessSwapParams.intent.recipient, amountOut);
         }
+
+        emit GaslessSwapLog(
+            gaslessSwapParams.intent.owner,
+            gaslessSwapParams.intent.authorizedSender,
+            gaslessSwapParams.intent.recipient,
+            gaslessSwapParams.intent.tokenIn,
+            gaslessSwapParams.intent.tokenOut,
+            amountInTotal,
+            amountOutTotal,
+            gaslessSwapParams.intent.isTokenOutEth
+        );
     }
 
     function _executeGaslessSwap(
         GaslessSwapParams calldata gaslessSwapParams,
         bytes calldata ownerSignature,
         uint128 fee
-    ) private returns (uint256 amountOutTotal) {
+    ) private returns (uint256 amountInTotal, uint256 amountOutTotal) {
         // Input params checks
         gaslessSwapParams.checkGaslessSwapParams();
 
@@ -387,7 +409,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         ownerSignature.verify(_hashTypedDataV4(gaslessSwapParams.intent.hashStruct()), gaslessSwapParams.intent.owner);
 
         // Execute swap(s)
-        amountOutTotal = _executeSwaps(
+        (amountInTotal, amountOutTotal) = _executeSwaps(
             ExecuteSwapParams({
                 isUniversalPool: gaslessSwapParams.isUniversalPool,
                 pools: gaslessSwapParams.pools,
@@ -411,7 +433,9 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         }
     }
 
-    function _executeSwaps(ExecuteSwapParams memory params) private returns (uint256 amountOutTotal) {
+    function _executeSwaps(
+        ExecuteSwapParams memory params
+    ) private returns (uint256 amountInTotal, uint256 amountOutTotal) {
         uint256 amountOutSwap;
 
         // First swap's amountIn must be specified by owner
@@ -420,8 +444,9 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         }
 
         for (uint256 i; i < params.pools.length; ) {
+            uint256 amountInUsed;
             address tokenOutSwap;
-            (tokenOutSwap, amountOutSwap) = params.isUniversalPool[i]
+            (amountInUsed, tokenOutSwap, amountOutSwap) = params.isUniversalPool[i]
                 ? _executeSingleSwapUniversalPool(
                     params.amountInSpecified[i] > 0 ? params.amountInSpecified[i] : amountOutSwap,
                     params.deadline,
@@ -436,6 +461,11 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
                     abi.encode(params.tokenIn, params.amountInSpecified[i] > 0 ? params.owner : address(this)),
                     params.payloads[i]
                 );
+
+            // Equivalent to user's tokenIn being the input token of this swap
+            if (params.amountInSpecified[i] > 0) {
+                amountInTotal += amountInUsed;
+            }
 
             if (tokenOutSwap == params.tokenOut) {
                 amountOutTotal += amountOutSwap;
@@ -453,7 +483,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         address pool,
         bytes memory swapCallbackContext,
         bytes memory payload
-    ) private returns (address tokenOut, uint256 amountOut) {
+    ) private returns (uint256 amountInUsed, address tokenOut, uint256 amountOut) {
         if (!_protocolFactory.isValidUniversalPool(pool)) {
             revert ValantisSwapRouter___executeSingleSwapUniversalPool_invalidUniversalPool();
         }
@@ -462,7 +492,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
 
         allowedUniversalPool = pool;
 
-        (, amountOut) = IUniversalPool(pool).swap(
+        (amountInUsed, amountOut) = IUniversalPool(pool).swap(
             SwapParams({
                 isZeroToOne: payloadStruct.isZeroToOne,
                 isSwapCallback: true,
@@ -489,7 +519,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         address pool,
         bytes memory swapCallbackContext,
         bytes memory payload
-    ) private returns (address tokenOut, uint256 amountOut) {
+    ) private returns (uint256 amountInUsed, address tokenOut, uint256 amountOut) {
         if (!_protocolFactory.isValidSovereignPool(pool)) {
             revert ValantisSwapRouter___executeSingleSwapSovereignPool_invalidSovereignPool();
         }
@@ -498,7 +528,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
 
         allowedSovereignPool = pool;
 
-        (, amountOut) = ISovereignPool(pool).swap(
+        (amountInUsed, amountOut) = ISovereignPool(pool).swap(
             SovereignPoolSwapParams({
                 isSwapCallback: true,
                 isZeroToOne: payloadStruct.isZeroToOne,
