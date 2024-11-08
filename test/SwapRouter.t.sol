@@ -1796,7 +1796,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         payloads[2] = abi.encode(
             UniversalPoolSwapPayload(
                 isZeroToOne,
-                recipient,
+                address(swapRouter), // tokenOut is ETH, hence swapRouter must receive WETH to unwrap
                 isZeroToOne ? PriceTickMath.MIN_PRICE_TICK : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
@@ -1829,7 +1829,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         payloads[5] = abi.encode(
             SovereignPoolSwapPayload(
                 isZeroToOne,
-                address(swapRouter),
+                address(swapRouter), // tokenOut is ETH, hence swapRouter must receive WETH to unwrap
                 address(weth),
                 0,
                 new bytes(0),
@@ -1883,7 +1883,25 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         vm.chainId(chainId);
 
-        uint256 amountOut = swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
+        uint256 amountOut;
+        {
+            uint256 snapshot = vm.snapshot();
+            amountOut = swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
+            vm.revertTo(snapshot);
+        }
+
+        vm.expectEmit(false, false, false, true);
+        emit GaslessSwapLog(
+            swapParams.intent.owner,
+            address(this),
+            swapParams.intent.recipient,
+            swapParams.intent.tokenIn,
+            swapParams.intent.tokenOut,
+            swapParams.intent.amountIn,
+            amountOut,
+            true
+        );
+        amountOut = swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
         // Recipient must receive amountOut of ETH
         assertEq(recipient.balance, amountOut);
     }

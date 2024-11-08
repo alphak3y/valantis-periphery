@@ -317,7 +317,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
             _directSwapParams.tokenIn,
             _directSwapParams.tokenOut,
             amountInTotal,
-            amountOutTotal,
+            amountOut,
             msg.value > 0,
             _directSwapParams.isTokenOutEth
         );
@@ -387,7 +387,7 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
             gaslessSwapParams.intent.tokenIn,
             gaslessSwapParams.intent.tokenOut,
             amountInTotal,
-            amountOutTotal,
+            amountOut,
             gaslessSwapParams.intent.isTokenOutEth
         );
     }
