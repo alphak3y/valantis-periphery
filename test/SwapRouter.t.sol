@@ -39,6 +39,28 @@ import { IAllowanceTransfer } from '../src/swap-router/interfaces/IAllowanceTran
 contract SwapRouterTest is Test, DeployPermit2 {
     error SwapRouterTest__receive_revertOnReceive();
 
+    event DirectSwapLog(
+        address user,
+        address recipient,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOut,
+        bool isTokenInEth,
+        bool isTokenOutEth
+    );
+
+    event GaslessSwapLog(
+        address user,
+        address solver,
+        address recipient,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOut,
+        bool isTokenOutEth
+    );
+
     IAllowanceTransfer public permit2;
 
     ERC20PresetFixedSupply public token0;
@@ -429,7 +451,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         vm.prank(swapRouter.WETH9());
 
-        (success, /* bytes memory data */) = address(swapRouter).call{ value: 1 ether }('');
+        (success /* bytes memory data */, ) = address(swapRouter).call{ value: 1 ether }('');
         assertTrue(success);
         assertEq(address(swapRouter).balance, 1 ether);
     }
@@ -1514,12 +1536,24 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         token0.approve(address(swapRouter), amountIn);
 
-        uint256 userPreBalance = token0.balanceOf(address(this));
-        assertEq(token3.balanceOf(recipient), 0);
-        uint256 amountOut = swapRouter.swap(swapParams);
-        assert(amountOut >= amountOutMin);
-        assertEq(token3.balanceOf(recipient), amountOut);
-        assertEq(userPreBalance - token0.balanceOf(address(this)), amountIn);
+        uint256 amountOut;
+        {
+            uint256 snapshot = vm.snapshot();
+            amountOut = swapRouter.swap(swapParams);
+            vm.revertTo(snapshot);
+        }
+
+        {
+            uint256 userPreBalance = token0.balanceOf(address(this));
+            assertEq(token3.balanceOf(recipient), 0);
+
+            vm.expectEmit(false, false, false, true);
+            emit DirectSwapLog(address(this), recipient, tokenIn, tokenOut, amountIn, amountOut, false, false);
+            amountOut = swapRouter.swap(swapParams);
+            assert(amountOut >= amountOutMin);
+            assertEq(token3.balanceOf(recipient), amountOut);
+            assertEq(userPreBalance - token0.balanceOf(address(this)), amountIn);
+        }
     }
 
     /**
@@ -1669,13 +1703,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         (ownerSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
 
-        swapParams = GaslessSwapParams(
-            isUniversalPool,
-            pools,
-            amountInSpecified,
-            payloads,
-            gaslessSwapIntent
-        );
+        swapParams = GaslessSwapParams(isUniversalPool, pools, amountInSpecified, payloads, gaslessSwapIntent);
 
         vm.chainId(123);
 
@@ -1684,10 +1712,28 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         vm.chainId(chainId);
 
+        uint256 amountOut;
+        {
+            uint256 snapshot = vm.snapshot();
+            amountOut = swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
+            vm.revertTo(snapshot);
+        }
+
         {
             uint256 senderPreBalance = token0.balanceOf(address(this));
             assertEq(token3.balanceOf(recipient), 0);
-            uint256 amountOut = swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
+            vm.expectEmit(false, false, false, true);
+            emit GaslessSwapLog(
+                swapParams.intent.owner,
+                address(this),
+                swapParams.intent.recipient,
+                swapParams.intent.tokenIn,
+                swapParams.intent.tokenOut,
+                swapParams.intent.amountIn,
+                amountOut,
+                false
+            );
+            amountOut = swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
             assertEq(token3.balanceOf(recipient), amountOut);
             assertEq(token0.balanceOf(address(this)) - senderPreBalance, 1e15);
         }
@@ -1750,7 +1796,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         payloads[2] = abi.encode(
             UniversalPoolSwapPayload(
                 isZeroToOne,
-                recipient,
+                address(swapRouter), // tokenOut is ETH, hence swapRouter must receive WETH to unwrap
                 isZeroToOne ? PriceTickMath.MIN_PRICE_TICK : PriceTickMath.MAX_PRICE_TICK,
                 0,
                 new uint8[](1),
@@ -1783,7 +1829,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         payloads[5] = abi.encode(
             SovereignPoolSwapPayload(
                 isZeroToOne,
-                address(swapRouter),
+                address(swapRouter), // tokenOut is ETH, hence swapRouter must receive WETH to unwrap
                 address(weth),
                 0,
                 new bytes(0),
@@ -1837,7 +1883,25 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         vm.chainId(chainId);
 
-        uint256 amountOut = swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
+        uint256 amountOut;
+        {
+            uint256 snapshot = vm.snapshot();
+            amountOut = swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
+            vm.revertTo(snapshot);
+        }
+
+        vm.expectEmit(false, false, false, true);
+        emit GaslessSwapLog(
+            swapParams.intent.owner,
+            address(this),
+            swapParams.intent.recipient,
+            swapParams.intent.tokenIn,
+            swapParams.intent.tokenOut,
+            swapParams.intent.amountIn,
+            amountOut,
+            true
+        );
+        amountOut = swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
         // Recipient must receive amountOut of ETH
         assertEq(recipient.balance, amountOut);
     }
@@ -1913,20 +1977,8 @@ contract SwapRouterTest is Test, DeployPermit2 {
         bytes[] memory signatures = new bytes[](2);
         uint128[] memory fees = new uint128[](2);
 
-        params[0] = GaslessSwapParams(
-            isUniversalPool,
-            pools,
-            amountInSpecified,
-            payloads,
-            firstGaslessSwapIntent
-        );
-        params[1] = GaslessSwapParams(
-            isUniversalPool,
-            pools,
-            amountInSpecified,
-            payloads,
-            secondGaslessSwapIntent
-        );
+        params[0] = GaslessSwapParams(isUniversalPool, pools, amountInSpecified, payloads, firstGaslessSwapIntent);
+        params[1] = GaslessSwapParams(isUniversalPool, pools, amountInSpecified, payloads, secondGaslessSwapIntent);
 
         signatures[0] = firstSignature;
         signatures[1] = secondSignature;
@@ -1941,20 +1993,8 @@ contract SwapRouterTest is Test, DeployPermit2 {
         signatures = new bytes[](2);
         fees = new uint128[](2);
 
-        params[0] = GaslessSwapParams(
-            isUniversalPool,
-            pools,
-            amountInSpecified,
-            payloads,
-            firstGaslessSwapIntent
-        );
-        params[1] = GaslessSwapParams(
-            isUniversalPool,
-            pools,
-            amountInSpecified,
-            payloads,
-            secondGaslessSwapIntent
-        );
+        params[0] = GaslessSwapParams(isUniversalPool, pools, amountInSpecified, payloads, firstGaslessSwapIntent);
+        params[1] = GaslessSwapParams(isUniversalPool, pools, amountInSpecified, payloads, secondGaslessSwapIntent);
 
         signatures[0] = firstSignature;
         signatures[1] = secondSignature;
@@ -1963,13 +2003,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         swapRouter.batchGaslessSwaps(params, signatures, fees);
 
         firstGaslessSwapIntent.amountOutMin = amountOutMin;
-        params[0] = GaslessSwapParams(
-            isUniversalPool,
-            pools,
-            amountInSpecified,
-            payloads,
-            firstGaslessSwapIntent
-        );
+        params[0] = GaslessSwapParams(isUniversalPool, pools, amountInSpecified, payloads, firstGaslessSwapIntent);
 
         (firstSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, firstGaslessSwapIntent);
         signatures[0] = firstSignature;
