@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 
 import { ISovereignPoolSwapCallback } from '@valantis-core/src/pools/interfaces/ISovereignPoolSwapCallback.sol';
 import { IUniversalPoolSwapCallback } from '@valantis-core/src/pools/interfaces/IUniversalPoolSwapCallback.sol';
