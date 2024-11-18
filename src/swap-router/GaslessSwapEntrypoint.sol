@@ -148,14 +148,18 @@ contract GaslessSwapEntrypoint is IGaslessSwapEntrypoint, Ownable {
         TokenPermitInfo calldata _tokenPermitInfo,
         Permit2Info calldata _permit2Info
     ) external override onlyWhitelistedExecutor returns (uint256 amountOut) {
-        _handleTokenPermit(
-            _tokenPermitInfo,
-            _gaslessSwapParams.intent.owner,
-            _gaslessSwapParams.intent.tokenIn,
-            _gaslessSwapParams.intent.deadline
-        );
+        if (_tokenPermitInfo.isEnabled) {
+            _handleTokenPermit(
+                _tokenPermitInfo,
+                _gaslessSwapParams.intent.owner,
+                _gaslessSwapParams.intent.tokenIn,
+                _gaslessSwapParams.intent.deadline
+            );
+        }
 
-        _handlePermit2(_permit2Info, _gaslessSwapParams.intent.owner);
+        if (_permit2Info.isEnabled) {
+            _handlePermit2(_permit2Info, _gaslessSwapParams.intent.owner);
+        }
 
         amountOut = _swapRouter.gaslessSwap(_gaslessSwapParams, _ownerSignature, _fee);
     }
@@ -170,9 +174,6 @@ contract GaslessSwapEntrypoint is IGaslessSwapEntrypoint, Ownable {
         address token,
         uint256 deadline
     ) private {
-        // Skip token approval for Permit2
-        if (!tokenPermitInfo.isEnabled) return;
-
         if (token == DAI) {
             (uint256 nonce, uint8 v, uint256 r, uint256 s) = abi.decode(
                 tokenPermitInfo.data,
@@ -186,9 +187,6 @@ contract GaslessSwapEntrypoint is IGaslessSwapEntrypoint, Ownable {
     }
 
     function _handlePermit2(Permit2Info calldata permit2Info, address owner) private {
-        // Skip Permit2 approval for Swap Router
-        if (!permit2Info.isEnabled) return;
-
         if (permit2Info.permitBatch.spender != address(_swapRouter))
             revert GaslessSwapEntrypoint___handlePermit2_unauthorizedSpender();
 
