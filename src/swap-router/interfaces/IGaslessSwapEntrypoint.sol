@@ -13,11 +13,11 @@ interface IGaslessSwapEntrypoint {
 
     function permit2() external view returns (address);
 
-    function isWhitelistedSolver(address _solver) external view returns (bool);
+    function isWhitelistedExecutor(address _executor) external view returns (bool);
 
-    function whitelistSolver(address _solver) external;
+    function whitelistExecutor(address _executor) external;
 
-    function removeSolver(address _solver) external;
+    function removeExecutor(address _executor) external;
 
     function execute(
         GaslessSwapParams calldata _gaslessSwapParams,

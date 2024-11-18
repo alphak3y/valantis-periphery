@@ -12,33 +12,51 @@ import { GaslessSwapParams } from './structs/ValantisSwapRouterStructs.sol';
 import { TokenPermitInfo } from './structs/GaslessSwapEntrypointStructs.sol';
 import { Permit2Info } from './structs/GaslessSwapEntrypointStructs.sol';
 
+/**
+    @title Gasless Swap Entrypoint.
+    @notice Contract to bundle token and/or Permit2 approvals
+            prior to execution of Gasless Swaps through Valantis Swap Router.
+ */
 contract GaslessSwapEntrypoint is IGaslessSwapEntrypoint, Ownable {
     /************************************************
      *  CUSTOM ERRORS
      ***********************************************/
 
-    error GaslessSwapEntrypoint__onlyWhitelistedSolver();
+    error GaslessSwapEntrypoint__onlyWhitelistedExecutor();
     error GaslessSwapEntrypoint__constructor_invalidDai();
     error GaslessSwapEntrypoint__constructor_invalidSwapRouter();
-    error GaslessSwapEntrypoint__execute_onlyWhitelistedSolver();
-    error GaslessSwapEntrypoint__whitelistSolver_invalidSolver();
+    error GaslessSwapEntrypoint__execute_onlyWhitelistedExecutor();
+    error GaslessSwapEntrypoint__whitelistExecutor_invalidExecutor();
     error GaslessSwapEntrypoint___handlePermit2_unauthorizedSpender();
 
     /************************************************
      *  IMMUTABLES
      ***********************************************/
 
+    /**
+        @notice Address of DAI token.
+     */
     address public immutable DAI;
 
+    /**
+        @notice Permit2 deployment.
+        @dev Determined by `_swapRouter`.
+     */
     IAllowanceTransfer private immutable _permit2;
 
+    /**
+        @notice Valantis Swap Router deployments.
+     */
     IValantisSwapRouter private immutable _swapRouter;
 
     /************************************************
      *  STORAGE
      ***********************************************/
 
-    mapping(address => bool) private _solverWhitelist;
+    /**
+        @notice Boolean mapping of whitelisted accounts who can execute swaps.
+     */
+    mapping(address => bool) private _executorWhitelist;
 
     /************************************************
      *  CONSTRUCTOR
@@ -59,8 +77,8 @@ contract GaslessSwapEntrypoint is IGaslessSwapEntrypoint, Ownable {
      *  MODIFIERS
      ***********************************************/
 
-    modifier onlyWhitelistedSolver() {
-        if (!_solverWhitelist[msg.sender]) revert GaslessSwapEntrypoint__onlyWhitelistedSolver();
+    modifier onlyWhitelistedExecutor() {
+        if (!_executorWhitelist[msg.sender]) revert GaslessSwapEntrypoint__onlyWhitelistedExecutor();
         _;
     }
 
@@ -68,39 +86,68 @@ contract GaslessSwapEntrypoint is IGaslessSwapEntrypoint, Ownable {
      *  EXTERNAL VIEW FUNCTIONS
      ***********************************************/
 
+    /**
+        @notice Address of Valantis Swap Router.
+     */
     function swapRouter() external view override returns (address) {
         return address(_swapRouter);
     }
 
+    /**
+        @notice Address of Permit2.
+     */
     function permit2() external view override returns (address) {
         return address(_permit2);
     }
 
-    function isWhitelistedSolver(address _solver) external view override returns (bool) {
-        return _solverWhitelist[_solver];
+    /**
+        @notice Returns true if `_executor` has been whitelisted, false otherwise.
+     */
+    function isWhitelistedExecutor(address _executor) external view override returns (bool) {
+        return _executorWhitelist[_executor];
     }
 
     /************************************************
      *  EXTERNAL FUNCTIONS
      ***********************************************/
 
-    function whitelistSolver(address _solver) external override onlyOwner {
-        if (_solver == address(0)) revert GaslessSwapEntrypoint__whitelistSolver_invalidSolver();
+    /**
+        @notice Whitelist account which is able to execute swaps (Executor).
+        @param _executor Executor account to whitelist.
+        @dev Only callable by `owner`.
+     */
+    function whitelistExecutor(address _executor) external override onlyOwner {
+        if (_executor == address(0)) revert GaslessSwapEntrypoint__whitelistExecutor_invalidExecutor();
 
-        _solverWhitelist[_solver] = true;
+        _executorWhitelist[_executor] = true;
     }
 
-    function removeSolver(address _solver) external override onlyOwner {
-        _solverWhitelist[_solver] = false;
+    /**
+        @notice Remove account to prevent it from executing swaps.
+        @param _executor Executor account to remove.
+        @dev Only callable by `owner`.
+     */
+    function removeExecutor(address _executor) external override onlyOwner {
+        _executorWhitelist[_executor] = false;
     }
 
+    /**
+        @notice Execute a swap with token and/or permit2 signature based approvals.
+        @dev Only callable by a whitelisted executor.
+        @param _gaslessSwapParams Parameter for ValantisSwapRouter::gaslessSwap.
+        @param _ownerSignature Parameter for ValantisSwapRouter::gaslessSwap.
+        @param _fee Parameter for Valantis SwapRouter::gaslessSwap.
+        @param _tokenPermitInfo Parameters for token's permit approval, if supported.
+        @param _permit2Info Parameters for Permit2's approval to ValantisSwapRouter.
+        @return amountOut Amount of output token sent to recipient.
+     */
     function execute(
         GaslessSwapParams calldata _gaslessSwapParams,
         bytes calldata _ownerSignature,
         uint128 _fee,
         TokenPermitInfo calldata _tokenPermitInfo,
         Permit2Info calldata _permit2Info
-    ) external override onlyWhitelistedSolver returns (uint256 amountOut) {
+    ) external override onlyWhitelistedExecutor returns (uint256 amountOut) {
         _handleTokenPermit(
             _tokenPermitInfo,
             _gaslessSwapParams.intent.owner,
