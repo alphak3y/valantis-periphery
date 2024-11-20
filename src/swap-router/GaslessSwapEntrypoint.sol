@@ -2,6 +2,8 @@
 pragma solidity 0.8.19;
 
 import { Ownable } from '@valantis-core/lib/openzeppelin-contracts/contracts/access/Ownable.sol';
+import { IERC20 } from '@valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import { SafeERC20 } from '@valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
 import { IAllowanceTransfer } from './interfaces/IAllowanceTransfer.sol';
 import { IDaiPermit } from './interfaces/IDaiPermit.sol';
@@ -18,11 +20,16 @@ import { Permit2Info } from './structs/GaslessSwapEntrypointStructs.sol';
             prior to execution of Gasless Swaps through Valantis Swap Router.
  */
 contract GaslessSwapEntrypoint is IGaslessSwapEntrypoint, Ownable {
+    using SafeERC20 for IERC20;
+
     /************************************************
      *  CUSTOM ERRORS
      ***********************************************/
 
     error GaslessSwapEntrypoint__onlyWhitelistedExecutor();
+    error GaslessSwapEntrypoint__claimTokens_invalidRecipient();
+    error GaslessSwapEntrypoint__claimTokens_invalidToken();
+    error GaslessSwapEntrypoint__claimTokens_invalidTokensLength();
     error GaslessSwapEntrypoint__constructor_invalidDai();
     error GaslessSwapEntrypoint__constructor_invalidSwapRouter();
     error GaslessSwapEntrypoint__execute_onlyWhitelistedExecutor();
@@ -132,36 +139,74 @@ contract GaslessSwapEntrypoint is IGaslessSwapEntrypoint, Ownable {
     }
 
     /**
-        @notice Execute a swap with token and/or permit2 signature based approvals.
+        @notice Execute batches of swaps with token and/or permit2 signature based approvals.
         @dev Only callable by a whitelisted executor.
-        @param _gaslessSwapParams Parameter for ValantisSwapRouter::gaslessSwap.
-        @param _ownerSignature Parameter for ValantisSwapRouter::gaslessSwap.
-        @param _fee Parameter for Valantis SwapRouter::gaslessSwap.
+        @param _gaslessSwapParams Parameters for ValantisSwapRouter::gaslessSwap.
+        @param _ownerSignature Parameters for ValantisSwapRouter::gaslessSwap.
+        @param _fee Parameters for Valantis SwapRouter::gaslessSwap.
         @param _tokenPermitInfo Parameters for token's permit approval, if supported.
         @param _permit2Info Parameters for Permit2's approval to ValantisSwapRouter.
-        @return amountOut Amount of output token sent to recipient.
+        @return amountOut Amounts of output token sent to each recipient.
      */
     function execute(
-        GaslessSwapParams calldata _gaslessSwapParams,
-        bytes calldata _ownerSignature,
-        uint128 _fee,
-        TokenPermitInfo calldata _tokenPermitInfo,
-        Permit2Info calldata _permit2Info
-    ) external override onlyWhitelistedExecutor returns (uint256 amountOut) {
-        if (_tokenPermitInfo.isEnabled) {
-            _handleTokenPermit(
-                _tokenPermitInfo,
-                _gaslessSwapParams.intent.owner,
-                _gaslessSwapParams.intent.tokenIn,
-                _gaslessSwapParams.intent.deadline
-            );
+        GaslessSwapParams[] calldata _gaslessSwapParams,
+        bytes[] calldata _ownerSignature,
+        uint128[] calldata _fee,
+        TokenPermitInfo[] calldata _tokenPermitInfo,
+        Permit2Info[] calldata _permit2Info
+    ) external override onlyWhitelistedExecutor returns (uint256[] memory amountOut) {
+        // It is assumed that all arrays have the same length, otherwise this call reverts
+        amountOut = new uint256[](_gaslessSwapParams.length);
+
+        for (uint256 i; i < _gaslessSwapParams.length; i++) {
+            if (_tokenPermitInfo[i].isEnabled) {
+                _handleTokenPermit(
+                    _tokenPermitInfo[i],
+                    _gaslessSwapParams[i].intent.owner,
+                    _gaslessSwapParams[i].intent.tokenIn,
+                    _gaslessSwapParams[i].intent.deadline
+                );
+            }
+
+            if (_permit2Info[i].isEnabled) {
+                _handlePermit2(_permit2Info[i], _gaslessSwapParams[i].intent.owner);
+            }
+
+            amountOut[i] = _swapRouter.gaslessSwap(_gaslessSwapParams[i], _ownerSignature[i], _fee[i]);
+        }
+    }
+
+    /**
+        @notice Claims token fees accumulated in this contract.
+        @dev By design of SwapRouter::gaslessSwap, fees are transferred into this contract.
+        @dev Only callable by `owner`.
+        @param _tokens Addresses of tokens to claim.
+        @param _recipient The address of the recipient.
+     */
+    function claimTokens(address[] calldata _tokens, address _recipient) external onlyOwner {
+        if (_tokens.length == 0) {
+            revert GaslessSwapEntrypoint__claimTokens_invalidTokensLength();
         }
 
-        if (_permit2Info.isEnabled) {
-            _handlePermit2(_permit2Info, _gaslessSwapParams.intent.owner);
+        if (_recipient == address(0)) {
+            revert GaslessSwapEntrypoint__claimTokens_invalidRecipient();
         }
 
-        amountOut = _swapRouter.gaslessSwap(_gaslessSwapParams, _ownerSignature, _fee);
+        for (uint256 i; i < _tokens.length; i++) {
+            IERC20 token = IERC20(_tokens[i]);
+
+            if (address(token) == address(0)) {
+                revert GaslessSwapEntrypoint__claimTokens_invalidToken();
+            }
+
+            uint256 balance = token.balanceOf(address(this));
+
+            if (balance > 0) {
+                token.safeTransfer(_recipient, balance);
+
+                emit TokenClaimed(address(token), _recipient, balance);
+            }
+        }
     }
 
     /************************************************
