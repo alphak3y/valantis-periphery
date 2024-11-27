@@ -30,7 +30,6 @@ contract GaslessSwapEntrypoint is IGaslessSwapEntrypoint, Ownable {
     error GaslessSwapEntrypoint__claimTokens_invalidRecipient();
     error GaslessSwapEntrypoint__claimTokens_invalidToken();
     error GaslessSwapEntrypoint__claimTokens_invalidTokensLength();
-    error GaslessSwapEntrypoint__constructor_invalidDai();
     error GaslessSwapEntrypoint__constructor_invalidSwapRouter();
     error GaslessSwapEntrypoint__execute_onlyWhitelistedExecutor();
     error GaslessSwapEntrypoint__whitelistExecutor_invalidExecutor();
@@ -41,7 +40,8 @@ contract GaslessSwapEntrypoint is IGaslessSwapEntrypoint, Ownable {
      ***********************************************/
 
     /**
-        @notice Address of DAI token.
+        @notice Address of DAI V1 token.
+        @dev Should only be specified if DAI token does not conform to ERC2612.
      */
     address public immutable DAI;
 
@@ -71,7 +71,6 @@ contract GaslessSwapEntrypoint is IGaslessSwapEntrypoint, Ownable {
 
     constructor(address _owner, address swapRouter_, address _dai) {
         if (swapRouter_ == address(0)) revert GaslessSwapEntrypoint__constructor_invalidSwapRouter();
-        if (_dai == address(0)) revert GaslessSwapEntrypoint__constructor_invalidDai();
 
         _swapRouter = IValantisSwapRouter(swapRouter_);
         _permit2 = IAllowanceTransfer(_swapRouter.permit2());
@@ -220,14 +219,14 @@ contract GaslessSwapEntrypoint is IGaslessSwapEntrypoint, Ownable {
         uint256 deadline
     ) private {
         if (token == DAI) {
-            (uint256 nonce, uint8 v, uint256 r, uint256 s) = abi.decode(
+            (uint256 nonce, uint8 v, bytes32 r, bytes32 s) = abi.decode(
                 tokenPermitInfo.data,
-                (uint256, uint8, uint256, uint256)
+                (uint256, uint8, bytes32, bytes32)
             );
-            IDaiPermit(DAI).permit(owner, address(_permit2), nonce, deadline, true, v, bytes32(r), bytes32(s));
+            IDaiPermit(DAI).permit(owner, address(_permit2), nonce, deadline, true, v, r, s);
         } else {
-            (uint8 v, uint256 r, uint256 s) = abi.decode(tokenPermitInfo.data, (uint8, uint256, uint256));
-            IERC2612(token).permit(owner, address(_permit2), type(uint256).max, deadline, v, bytes32(r), bytes32(s));
+            (uint8 v, bytes32 r, bytes32 s) = abi.decode(tokenPermitInfo.data, (uint8, bytes32, bytes32));
+            IERC2612(token).permit(owner, address(_permit2), type(uint256).max, deadline, v, r, s);
         }
     }
 
