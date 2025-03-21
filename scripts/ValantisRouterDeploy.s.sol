@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import 'forge-std/Script.sol';
 import { ValantisSwapRouter } from '../src/swap-router/ValantisSwapRouter.sol';
 
-contract ValantisRouterDeploy is Script {
+contract ValantisRouterDeployScript is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint('DEPLOYER_PRIVATE_KEY');
         address WETH = vm.envAddress('WETH');
