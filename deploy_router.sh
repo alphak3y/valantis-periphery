@@ -1,0 +1,1 @@
+eval $(grep '^RPC_URL' .env) && forge script scripts/ValantisRouterDeploy.s.sol:ValantisRouterDeployScript --rpc-url $RPC_URL
