@@ -19,20 +19,12 @@ interface IAllowanceTransfer {
 
     /// @notice Emits an event when the owner successfully invalidates an ordered nonce.
     event NonceInvalidation(
-        address indexed owner,
-        address indexed token,
-        address indexed spender,
-        uint48 newNonce,
-        uint48 oldNonce
+        address indexed owner, address indexed token, address indexed spender, uint48 newNonce, uint48 oldNonce
     );
 
     /// @notice Emits an event when the owner successfully sets permissions on a token for the spender.
     event Approval(
-        address indexed owner,
-        address indexed token,
-        address indexed spender,
-        uint160 amount,
-        uint48 expiration
+        address indexed owner, address indexed token, address indexed spender, uint160 amount, uint48 expiration
     );
 
     // solhint-disable-next-line max-line-length
@@ -118,11 +110,10 @@ interface IAllowanceTransfer {
     /// @notice The mapping is indexed in the above order see: allowance[ownerAddress][tokenAddress][spenderAddress]
     // solhint-disable-next-line max-line-length
     /// @dev The packed slot holds the allowed amount, expiration at which the allowed amount is no longer valid, and current nonce thats updated on any signature based approvals.
-    function allowance(
-        address user,
-        address token,
-        address spender
-    ) external view returns (uint160 amount, uint48 expiration, uint48 nonce);
+    function allowance(address user, address token, address spender)
+        external
+        view
+        returns (uint160 amount, uint48 expiration, uint48 nonce);
 
     /// @notice Approves the spender to use up to amount of the specified token up until the expiration
     /// @param token The token to approve

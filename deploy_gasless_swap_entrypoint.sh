@@ -1,0 +1,1 @@
+eval $(grep '^RPC_URL' .env) && forge script scripts/GaslessSwapEntrypointDeploy.s.sol:GaslessSwapEntrypointDeployScript --rpc-url $RPC_URL

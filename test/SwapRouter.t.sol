@@ -1,40 +1,39 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import 'forge-std/Test.sol';
-import 'forge-std/console.sol';
+import "forge-std/Test.sol";
+import "forge-std/console.sol";
 
-import {
-    ERC20PresetFixedSupply
-} from '@valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol';
-import { WETH } from '@solmate/src/tokens/WETH.sol';
-import { DeployPermit2 } from '@permit2/test/utils/DeployPermit2.sol';
+import {ERC20PresetFixedSupply} from
+    "@valantis-core/lib/openzeppelin-contracts/contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
+import {WETH} from "@solmate/src/tokens/WETH.sol";
+import {DeployPermit2} from "@permit2/test/utils/DeployPermit2.sol";
 
-import { ALMLiquidityQuote } from '@valantis-core/src/ALM/structs/UniversalALMStructs.sol';
-import { MockSovereignALM } from '@valantis-core/src/mocks/MockSovereignALM.sol';
-import { MockSovereignALMFactory } from '@valantis-core/src/mocks/MockSovereignALMFactory.sol';
-import { SovereignPool } from '@valantis-core/src/pools/SovereignPool.sol';
-import { SovereignPoolFactory } from '@valantis-core/src/pools/factories/SovereignPoolFactory.sol';
-import { SovereignPoolConstructorArgs } from '@valantis-core/src/pools/structs/SovereignPoolStructs.sol';
-import { MockUniversalALM } from '@valantis-core/src/mocks/MockUniversalALM.sol';
-import { MockUniversalALMFactory } from '@valantis-core/src/mocks/MockUniversalALMFactory.sol';
-import { UniversalPool, PoolState } from '@valantis-core/src/pools/UniversalPool.sol';
-import { ALMReserves } from '@valantis-core/src/ALM/structs/UniversalALMStructs.sol';
-import { UniversalPoolFactory } from '@valantis-core/src/pools/factories/UniversalPoolFactory.sol';
-import { ProtocolFactory } from '@valantis-core/src/protocol-factory/ProtocolFactory.sol';
-import { PriceTickMath } from '@valantis-core/src/libraries/PriceTickMath.sol';
+import {ALMLiquidityQuote} from "@valantis-core/src/ALM/structs/UniversalALMStructs.sol";
+import {MockSovereignALM} from "@valantis-core/src/mocks/MockSovereignALM.sol";
+import {MockSovereignALMFactory} from "@valantis-core/src/mocks/MockSovereignALMFactory.sol";
+import {SovereignPool} from "@valantis-core/src/pools/SovereignPool.sol";
+import {SovereignPoolFactory} from "@valantis-core/src/pools/factories/SovereignPoolFactory.sol";
+import {SovereignPoolConstructorArgs} from "@valantis-core/src/pools/structs/SovereignPoolStructs.sol";
+import {MockUniversalALM} from "@valantis-core/src/mocks/MockUniversalALM.sol";
+import {MockUniversalALMFactory} from "@valantis-core/src/mocks/MockUniversalALMFactory.sol";
+import {UniversalPool, PoolState} from "@valantis-core/src/pools/UniversalPool.sol";
+import {ALMReserves} from "@valantis-core/src/ALM/structs/UniversalALMStructs.sol";
+import {UniversalPoolFactory} from "@valantis-core/src/pools/factories/UniversalPoolFactory.sol";
+import {ProtocolFactory} from "@valantis-core/src/protocol-factory/ProtocolFactory.sol";
+import {PriceTickMath} from "@valantis-core/src/libraries/PriceTickMath.sol";
 
-import { ValantisSwapRouter } from '../src/swap-router/ValantisSwapRouter.sol';
+import {ValantisSwapRouter} from "../src/swap-router/ValantisSwapRouter.sol";
 import {
     DirectSwapParams,
     UniversalPoolSwapPayload,
     SovereignPoolSwapPayload,
     GaslessSwapParams,
     GaslessSwapIntent
-} from '../src/swap-router/structs/ValantisSwapRouterStructs.sol';
-import { DirectSwap } from '../src/swap-router/libraries/DirectSwap.sol';
-import { SignatureVerification } from '../src/swap-router/libraries/SignatureVerification.sol';
-import { IAllowanceTransfer } from '../src/swap-router/interfaces/IAllowanceTransfer.sol';
+} from "../src/swap-router/structs/ValantisSwapRouterStructs.sol";
+import {DirectSwap} from "../src/swap-router/libraries/DirectSwap.sol";
+import {SignatureVerification} from "../src/swap-router/libraries/SignatureVerification.sol";
+import {IAllowanceTransfer} from "../src/swap-router/interfaces/IAllowanceTransfer.sol";
 
 contract SwapRouterTest is Test, DeployPermit2 {
     error SwapRouterTest__receive_revertOnReceive();
@@ -101,11 +100,10 @@ contract SwapRouterTest is Test, DeployPermit2 {
     address public constant MOCK_RECIPIENT = address(123);
     uint256 public constant TOKEN_SUPPLY = 1000e18;
     uint32 public constant BLOCK_TIME = 12;
-    bytes32 public constant GASLESS_SWAP_INTENT_TYPEHASH =
-        keccak256(
-            // solhint-disable-next-line max-line-length
-            'GaslessSwapIntent(bool isTokenOutEth,address tokenIn,address tokenOut,address owner,address recipient,address authorizedSender,address feeToken,uint256 amountIn,uint256 amountOutMin,uint128 maxFee,uint256 nonce,uint256 deadline)'
-        );
+    bytes32 public constant GASLESS_SWAP_INTENT_TYPEHASH = keccak256(
+        // solhint-disable-next-line max-line-length
+        "GaslessSwapIntent(bool isTokenOutEth,address tokenIn,address tokenOut,address owner,address recipient,address authorizedSender,address feeToken,uint256 amountIn,uint256 amountOutMin,uint128 maxFee,uint256 nonce,uint256 deadline)"
+    );
 
     address _owner;
     uint256 private constant _ownerPrivateKey = 0x12345;
@@ -115,10 +113,10 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         permit2 = IAllowanceTransfer(deployPermit2());
 
-        token0 = new ERC20PresetFixedSupply('token0', '0', TOKEN_SUPPLY, address(this));
-        token1 = new ERC20PresetFixedSupply('token1', '1', TOKEN_SUPPLY, address(this));
-        token2 = new ERC20PresetFixedSupply('token2', '2', TOKEN_SUPPLY, address(this));
-        token3 = new ERC20PresetFixedSupply('token3', '3', TOKEN_SUPPLY, address(this));
+        token0 = new ERC20PresetFixedSupply("token0", "0", TOKEN_SUPPLY, address(this));
+        token1 = new ERC20PresetFixedSupply("token1", "1", TOKEN_SUPPLY, address(this));
+        token2 = new ERC20PresetFixedSupply("token2", "2", TOKEN_SUPPLY, address(this));
+        token3 = new ERC20PresetFixedSupply("token3", "3", TOKEN_SUPPLY, address(this));
         weth = new WETH();
 
         vm.deal(address(this), TOKEN_SUPPLY);
@@ -235,30 +233,25 @@ contract SwapRouterTest is Test, DeployPermit2 {
         );
 
         // Deploy Universal Pools
-        firstUniversalPool = UniversalPool(
-            protocolFactory.deployUniversalPool(address(token0), address(token1), address(this), 0)
-        );
+        firstUniversalPool =
+            UniversalPool(protocolFactory.deployUniversalPool(address(token0), address(token1), address(this), 0));
         firstUniversalPool.initializeTick(0);
 
-        secondUniversalPool = UniversalPool(
-            protocolFactory.deployUniversalPool(address(token1), address(token2), address(this), 0)
-        );
+        secondUniversalPool =
+            UniversalPool(protocolFactory.deployUniversalPool(address(token1), address(token2), address(this), 0));
         secondUniversalPool.initializeTick(0);
 
-        thirdUniversalPool = UniversalPool(
-            protocolFactory.deployUniversalPool(address(token2), address(token3), address(this), 0)
-        );
+        thirdUniversalPool =
+            UniversalPool(protocolFactory.deployUniversalPool(address(token2), address(token3), address(this), 0));
         thirdUniversalPool.initializeTick(0);
 
-        fourthUniversalPool = UniversalPool(
-            protocolFactory.deployUniversalPool(address(token3), address(weth), address(this), 0)
-        );
+        fourthUniversalPool =
+            UniversalPool(protocolFactory.deployUniversalPool(address(token3), address(weth), address(this), 0));
         fourthUniversalPool.initializeTick(0);
 
         invalidUniversalPool = UniversalPool(
             universalPoolFactory.deploy(
-                bytes32(0),
-                abi.encode(address(token0), address(token1), address(protocolFactory), address(this), 0)
+                bytes32(0), abi.encode(address(token0), address(token1), address(protocolFactory), address(this), 0)
             )
         );
         invalidUniversalPool.initializeTick(0);
@@ -266,9 +259,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         // Deploy Mock Sovereign ALMs
         firstSovereignALM = MockSovereignALM(
             protocolFactory.deployALMPositionForSovereignPool(
-                address(firstSovereignPool),
-                sovereignALMFactory,
-                abi.encode(address(firstSovereignPool))
+                address(firstSovereignPool), sovereignALMFactory, abi.encode(address(firstSovereignPool))
             )
         );
         firstSovereignPool.setALM(address(firstSovereignALM));
@@ -276,9 +267,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         secondSovereignALM = MockSovereignALM(
             protocolFactory.deployALMPositionForSovereignPool(
-                address(secondSovereignPool),
-                sovereignALMFactory,
-                abi.encode(address(secondSovereignPool))
+                address(secondSovereignPool), sovereignALMFactory, abi.encode(address(secondSovereignPool))
             )
         );
         secondSovereignPool.setALM(address(secondSovereignALM));
@@ -286,9 +275,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         thirdSovereignALM = MockSovereignALM(
             protocolFactory.deployALMPositionForSovereignPool(
-                address(thirdSovereignPool),
-                sovereignALMFactory,
-                abi.encode(address(thirdSovereignPool))
+                address(thirdSovereignPool), sovereignALMFactory, abi.encode(address(thirdSovereignPool))
             )
         );
         thirdSovereignPool.setALM(address(thirdSovereignALM));
@@ -296,9 +283,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         fourthSovereignALM = MockSovereignALM(
             protocolFactory.deployALMPositionForSovereignPool(
-                address(fourthSovereignPool),
-                sovereignALMFactory,
-                abi.encode(address(fourthSovereignPool))
+                address(fourthSovereignPool), sovereignALMFactory, abi.encode(address(fourthSovereignPool))
             )
         );
         fourthSovereignPool.setALM(address(fourthSovereignALM));
@@ -307,36 +292,28 @@ contract SwapRouterTest is Test, DeployPermit2 {
         // Deploy Mock Universal ALMs
         firstUniversalALM = MockUniversalALM(
             protocolFactory.deployALMPositionForUniversalPool(
-                address(firstUniversalPool),
-                universalALMFactory,
-                abi.encode(address(firstUniversalPool), false)
+                address(firstUniversalPool), universalALMFactory, abi.encode(address(firstUniversalPool), false)
             )
         );
         firstUniversalPool.addALMPosition(false, false, false, 0, address(firstUniversalALM));
 
         secondUniversalALM = MockUniversalALM(
             protocolFactory.deployALMPositionForUniversalPool(
-                address(secondUniversalPool),
-                universalALMFactory,
-                abi.encode(address(secondUniversalPool), false)
+                address(secondUniversalPool), universalALMFactory, abi.encode(address(secondUniversalPool), false)
             )
         );
         secondUniversalPool.addALMPosition(false, false, false, 0, address(secondUniversalALM));
 
         thirdUniversalALM = MockUniversalALM(
             protocolFactory.deployALMPositionForUniversalPool(
-                address(thirdUniversalPool),
-                universalALMFactory,
-                abi.encode(address(thirdUniversalPool), false)
+                address(thirdUniversalPool), universalALMFactory, abi.encode(address(thirdUniversalPool), false)
             )
         );
         thirdUniversalPool.addALMPosition(false, false, false, 0, address(thirdUniversalALM));
 
         fourthUniversalALM = MockUniversalALM(
             protocolFactory.deployALMPositionForUniversalPool(
-                address(fourthUniversalPool),
-                universalALMFactory,
-                abi.encode(address(fourthUniversalPool), false)
+                address(fourthUniversalPool), universalALMFactory, abi.encode(address(fourthUniversalPool), false)
             )
         );
         fourthUniversalPool.addALMPosition(false, false, false, 0, address(fourthUniversalALM));
@@ -383,7 +360,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         token1.transfer(_owner, 100e18);
         token2.transfer(_owner, 100e18);
         token3.transfer(_owner, 100e18);
-        weth.deposit{ value: 100e18 }();
+        weth.deposit{value: 100e18}();
         weth.transfer(_owner, 100e18);
 
         vm.prank(_owner);
@@ -407,11 +384,11 @@ contract SwapRouterTest is Test, DeployPermit2 {
         vm.prank(_owner);
         permit2.approve(address(weth), address(swapRouter), 100e18, uint48(block.timestamp + 1e8));
 
-        (uint160 allowanceToken0, , ) = permit2.allowance(_owner, address(token0), address(swapRouter));
-        (uint160 allowanceToken1, , ) = permit2.allowance(_owner, address(token1), address(swapRouter));
-        (uint160 allowanceToken2, , ) = permit2.allowance(_owner, address(token2), address(swapRouter));
-        (uint160 allowanceToken3, , ) = permit2.allowance(_owner, address(token3), address(swapRouter));
-        (uint160 allowanceWeth, , ) = permit2.allowance(_owner, address(weth), address(swapRouter));
+        (uint160 allowanceToken0,,) = permit2.allowance(_owner, address(token0), address(swapRouter));
+        (uint160 allowanceToken1,,) = permit2.allowance(_owner, address(token1), address(swapRouter));
+        (uint160 allowanceToken2,,) = permit2.allowance(_owner, address(token2), address(swapRouter));
+        (uint160 allowanceToken3,,) = permit2.allowance(_owner, address(token3), address(swapRouter));
+        (uint160 allowanceWeth,,) = permit2.allowance(_owner, address(weth), address(swapRouter));
 
         assertEq(allowanceToken0, 100e18);
         assertEq(allowanceToken1, 100e18);
@@ -427,11 +404,8 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     function testDeploySwapRouter() public {
-        ValantisSwapRouter swapRouterDeployment = new ValantisSwapRouter(
-            address(protocolFactory),
-            address(weth),
-            address(permit2)
-        );
+        ValantisSwapRouter swapRouterDeployment =
+            new ValantisSwapRouter(address(protocolFactory), address(weth), address(permit2));
 
         assertEq(swapRouterDeployment.protocolFactory(), address(protocolFactory));
         assertEq(swapRouterDeployment.permit2(), address(permit2));
@@ -447,11 +421,11 @@ contract SwapRouterTest is Test, DeployPermit2 {
     function testReceive() public {
         // Only WETH contract can directly send ETH to swapRouter
         vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__receive_onlyWeth.selector);
-        (bool success, ) = address(swapRouter).call{ value: 1 ether }('');
+        (bool success,) = address(swapRouter).call{value: 1 ether}("");
 
         vm.prank(swapRouter.WETH9());
 
-        (success /* bytes memory data */, ) = address(swapRouter).call{ value: 1 ether }('');
+        (success, /* bytes memory data */ ) = address(swapRouter).call{value: 1 ether}("");
         assertTrue(success);
         assertEq(address(swapRouter).balance, 1 ether);
     }
@@ -477,7 +451,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     /**
-        @notice Test swap router over one Sovereign Pool. 
+     * @notice Test swap router over one Sovereign Pool.
      */
     function testSovereignPoolSwapSingle() public {
         _prepareSovereignPools();
@@ -576,7 +550,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     /**
-        @notice Test swap router over one Sovereign Pool, starting from ETH. 
+     * @notice Test swap router over one Sovereign Pool, starting from ETH.
      */
     function testSovereignPoolSwapSingleFromETH() public {
         _prepareSovereignPools();
@@ -618,19 +592,19 @@ contract SwapRouterTest is Test, DeployPermit2 {
         // Should revert if swapParams.tokenIn is not WETH
         swapParams.tokenIn = address(1);
         vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter__swap_invalidNativeTokenSwap.selector);
-        swapRouter.swap{ value: amountIn }(swapParams);
+        swapRouter.swap{value: amountIn}(swapParams);
         swapParams.tokenIn = tokenIn;
 
         // Should revert if msg.value does not match total sum of amountInSpecified
         vm.expectRevert(DirectSwap.DirectSwap__checkDirectSwapParams_incorrectNativeTokenAmountIn.selector);
-        swapRouter.swap{ value: amountIn - 1 }(swapParams);
+        swapRouter.swap{value: amountIn - 1}(swapParams);
 
         uint256 snapshot1 = vm.snapshot();
         uint256 snapshot2 = vm.snapshot();
 
         uint256 userPreBalance = address(this).balance;
         assertEq(token3.balanceOf(recipient), 0);
-        uint256 amountOut = swapRouter.swap{ value: amountIn }(swapParams);
+        uint256 amountOut = swapRouter.swap{value: amountIn}(swapParams);
         assertTrue(amountOut >= amountOutMin);
         assertEq(token3.balanceOf(recipient), amountOut);
         assertEq(userPreBalance - address(this).balance, amountIn);
@@ -647,7 +621,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         revertOnReceive = true;
         fourthSovereignALM.setQuotePartialFill(true);
         vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter___sendNativeToken_ethTransferFailed.selector);
-        amountOut = swapRouter.swap{ value: amountIn }(swapParams);
+        amountOut = swapRouter.swap{value: amountIn}(swapParams);
 
         revertOnReceive = false;
 
@@ -655,13 +629,13 @@ contract SwapRouterTest is Test, DeployPermit2 {
         vm.revertTo(snapshot1);
 
         fourthSovereignALM.setQuotePartialFill(true);
-        amountOut = swapRouter.swap{ value: amountIn }(swapParams);
+        amountOut = swapRouter.swap{value: amountIn}(swapParams);
         assertTrue(amountOut >= amountOutMin);
         assertEq(address(swapRouter).balance, 0);
     }
 
     /**
-        @notice Test swap router over one Sovereign Pool, starting from WETH. 
+     * @notice Test swap router over one Sovereign Pool, starting from WETH.
      */
     function testSovereignPoolSwapSingleFromWETH() public {
         _prepareSovereignPools();
@@ -700,7 +674,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             deadline
         );
 
-        weth.deposit{ value: amountIn }();
+        weth.deposit{value: amountIn}();
         assertEq(weth.balanceOf(address(this)), amountIn);
 
         weth.approve(address(swapRouter), amountIn);
@@ -714,7 +688,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     /**
-        @notice Test swap router over one Sovereign Pool, ETH as output token.
+     * @notice Test swap router over one Sovereign Pool, ETH as output token.
      */
     function testSovereignPoolSwapSingleToETH() public {
         _prepareSovereignPools();
@@ -771,13 +745,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         payloads[0] = abi.encode(
             SovereignPoolSwapPayload(
-                true,
-                recipient,
-                address(weth),
-                amountOutMin,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                true, recipient, address(weth), amountOutMin, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         // WETH amount cannot go directly from pool to recipient
@@ -786,13 +754,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         payloads[0] = abi.encode(
             SovereignPoolSwapPayload(
-                true,
-                address(swapRouter),
-                address(weth),
-                amountOutMin,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                true, address(swapRouter), address(weth), amountOutMin, new bytes(0), new bytes(0), new bytes(0)
             )
         );
 
@@ -802,7 +764,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     /**
-        @notice Test swap router over multiple Sovereign pools. 
+     * @notice Test swap router over multiple Sovereign pools.
      */
     function testSovereignPoolMultiSwap() public {
         _prepareSovereignPools();
@@ -830,24 +792,12 @@ contract SwapRouterTest is Test, DeployPermit2 {
         bytes[] memory payloads = new bytes[](3);
         payloads[0] = abi.encode(
             SovereignPoolSwapPayload(
-                true,
-                address(swapRouter),
-                address(token1),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                true, address(swapRouter), address(token1), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[1] = abi.encode(
             SovereignPoolSwapPayload(
-                true,
-                address(swapRouter),
-                address(token2),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                true, address(swapRouter), address(token2), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[2] = abi.encode(
@@ -884,7 +834,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     /**
-        @notice Test swap router over multiple Sovereign pools, starting from ETH. 
+     * @notice Test swap router over multiple Sovereign pools, starting from ETH.
      */
     function testSovereignPoolMultiSwapFromETH() public {
         _prepareSovereignPools();
@@ -914,35 +864,17 @@ contract SwapRouterTest is Test, DeployPermit2 {
         bytes[] memory payloads = new bytes[](4);
         payloads[0] = abi.encode(
             SovereignPoolSwapPayload(
-                false,
-                address(swapRouter),
-                address(token3),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                false, address(swapRouter), address(token3), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[1] = abi.encode(
             SovereignPoolSwapPayload(
-                false,
-                address(swapRouter),
-                address(token2),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                false, address(swapRouter), address(token2), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[2] = abi.encode(
             SovereignPoolSwapPayload(
-                false,
-                address(swapRouter),
-                address(token1),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                false, address(swapRouter), address(token1), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[3] = abi.encode(
@@ -964,14 +896,14 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         uint256 userPreBalance = address(this).balance;
         assertEq(token0.balanceOf(recipient), 0);
-        uint256 amountOut = swapRouter.swap{ value: amountIn }(swapParams);
+        uint256 amountOut = swapRouter.swap{value: amountIn}(swapParams);
         assert(amountOut >= amountOutMin);
         assertEq(token0.balanceOf(recipient), amountOut);
         assertEq(userPreBalance - address(this).balance, amountIn);
     }
 
     /**
-        @notice Test swap router over multiple Sovereign pools, starting from WETH. 
+     * @notice Test swap router over multiple Sovereign pools, starting from WETH.
      */
     function testSovereignPoolMultiSwapFromWETH() public {
         _prepareSovereignPools();
@@ -1001,35 +933,17 @@ contract SwapRouterTest is Test, DeployPermit2 {
         bytes[] memory payloads = new bytes[](4);
         payloads[0] = abi.encode(
             SovereignPoolSwapPayload(
-                false,
-                address(swapRouter),
-                address(token3),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                false, address(swapRouter), address(token3), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[1] = abi.encode(
             SovereignPoolSwapPayload(
-                false,
-                address(swapRouter),
-                address(token2),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                false, address(swapRouter), address(token2), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[2] = abi.encode(
             SovereignPoolSwapPayload(
-                false,
-                address(swapRouter),
-                address(token1),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                false, address(swapRouter), address(token1), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[3] = abi.encode(
@@ -1049,7 +963,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             deadline
         );
 
-        weth.deposit{ value: amountIn }();
+        weth.deposit{value: amountIn}();
         assertEq(weth.balanceOf(address(this)), amountIn);
 
         weth.approve(address(swapRouter), amountIn);
@@ -1063,7 +977,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     /**
-        @notice Test swap router over a single Universal Pool. 
+     * @notice Test swap router over a single Universal Pool.
      */
     function testUniversalPoolSwapSingle() public {
         bool isZeroToOne = true;
@@ -1132,7 +1046,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     /**
-        @notice Test swap router over multiple Universal pools.
+     * @notice Test swap router over multiple Universal pools.
      */
     function testUniversalPoolMultiSwap() public {
         bool isZeroToOne = true;
@@ -1222,7 +1136,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     /**
-        @notice Test swap router over multiple Universal pools, starting from ETH. 
+     * @notice Test swap router over multiple Universal pools, starting from ETH.
      */
     function testUniversalPoolMultiSwapFromETH() public {
         bool isZeroToOne = false;
@@ -1312,14 +1226,14 @@ contract SwapRouterTest is Test, DeployPermit2 {
 
         uint256 userPreBalance = address(this).balance;
         assertEq(token0.balanceOf(recipient), 0);
-        uint256 amountOut = swapRouter.swap{ value: amountIn }(swapParams);
+        uint256 amountOut = swapRouter.swap{value: amountIn}(swapParams);
         assert(amountOut >= amountOutMin);
         assertEq(token0.balanceOf(recipient), amountOut);
         assertEq(userPreBalance - address(this).balance, amountIn);
     }
 
     /**
-        @notice Test swap router over multiple Universal pools, starting from WETH. 
+     * @notice Test swap router over multiple Universal pools, starting from WETH.
      */
     function testUniversalPoolMultiSwapFromWETH() public {
         bool isZeroToOne = false;
@@ -1407,7 +1321,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             deadline
         );
 
-        weth.deposit{ value: amountIn }();
+        weth.deposit{value: amountIn}();
         assertEq(weth.balanceOf(address(this)), amountIn);
 
         weth.approve(address(swapRouter), amountIn);
@@ -1421,7 +1335,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     /**
-        @notice Test swap router over both Universal and Sovereign pools for the same pairs. 
+     * @notice Test swap router over both Universal and Sovereign pools for the same pairs.
      */
     function testUniversalAndSovereignPoolMultiSwap() public {
         bool isZeroToOne = true;
@@ -1489,35 +1403,17 @@ contract SwapRouterTest is Test, DeployPermit2 {
         );
         payloads[3] = abi.encode(
             SovereignPoolSwapPayload(
-                isZeroToOne,
-                address(swapRouter),
-                address(token1),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                isZeroToOne, address(swapRouter), address(token1), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[4] = abi.encode(
             SovereignPoolSwapPayload(
-                isZeroToOne,
-                address(swapRouter),
-                address(token2),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                isZeroToOne, address(swapRouter), address(token2), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[5] = abi.encode(
             SovereignPoolSwapPayload(
-                isZeroToOne,
-                recipient,
-                address(token3),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                isZeroToOne, recipient, address(token3), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
 
@@ -1557,7 +1453,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     /**
-        @notice Test gasless swap over multiple Universal and Sovereign pools.
+     * @notice Test gasless swap over multiple Universal and Sovereign pools.
      */
     function testGaslessSwapUniversalAndSovereignPoolMultiSwap() public {
         bool isZeroToOne = true;
@@ -1622,35 +1518,17 @@ contract SwapRouterTest is Test, DeployPermit2 {
         );
         payloads[3] = abi.encode(
             SovereignPoolSwapPayload(
-                isZeroToOne,
-                address(swapRouter),
-                address(token1),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                isZeroToOne, address(swapRouter), address(token1), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[4] = abi.encode(
             SovereignPoolSwapPayload(
-                isZeroToOne,
-                address(swapRouter),
-                address(token2),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                isZeroToOne, address(swapRouter), address(token2), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[5] = abi.encode(
             SovereignPoolSwapPayload(
-                isZeroToOne,
-                recipient,
-                address(token3),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                isZeroToOne, recipient, address(token3), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
 
@@ -1670,15 +1548,10 @@ contract SwapRouterTest is Test, DeployPermit2 {
             block.timestamp
         );
 
-        (bytes memory ownerSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
+        (bytes memory ownerSignature,) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
 
-        GaslessSwapParams memory swapParams = GaslessSwapParams(
-            isUniversalPool,
-            pools,
-            amountInSpecified,
-            payloads,
-            gaslessSwapIntent
-        );
+        GaslessSwapParams memory swapParams =
+            GaslessSwapParams(isUniversalPool, pools, amountInSpecified, payloads, gaslessSwapIntent);
 
         vm.expectRevert(ValantisSwapRouter.ValantisSwapRouter___gaslessSwap_insufficientAmountOut.selector);
         swapRouter.gaslessSwap(swapParams, ownerSignature, gaslessSwapIntent.maxFee);
@@ -1701,7 +1574,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             block.timestamp
         );
 
-        (ownerSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
+        (ownerSignature,) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
 
         swapParams = GaslessSwapParams(isUniversalPool, pools, amountInSpecified, payloads, gaslessSwapIntent);
 
@@ -1740,7 +1613,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
     }
 
     /**
-        @notice Test gasless swap over multiple Universal and Sovereign pools, into ETH.
+     * @notice Test gasless swap over multiple Universal and Sovereign pools, into ETH.
      */
     function testGaslessSwapUniversalAndSovereignPoolMultiSwapIntoETH() public {
         bool isZeroToOne = true;
@@ -1806,24 +1679,12 @@ contract SwapRouterTest is Test, DeployPermit2 {
         );
         payloads[3] = abi.encode(
             SovereignPoolSwapPayload(
-                isZeroToOne,
-                address(swapRouter),
-                address(token2),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                isZeroToOne, address(swapRouter), address(token2), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[4] = abi.encode(
             SovereignPoolSwapPayload(
-                isZeroToOne,
-                address(swapRouter),
-                address(token3),
-                0,
-                new bytes(0),
-                new bytes(0),
-                new bytes(0)
+                isZeroToOne, address(swapRouter), address(token3), 0, new bytes(0), new bytes(0), new bytes(0)
             )
         );
         payloads[5] = abi.encode(
@@ -1854,15 +1715,10 @@ contract SwapRouterTest is Test, DeployPermit2 {
             block.timestamp
         );
 
-        (bytes memory ownerSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
+        (bytes memory ownerSignature,) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
 
-        GaslessSwapParams memory swapParams = GaslessSwapParams(
-            isUniversalPool,
-            pools,
-            amountInSpecified,
-            payloads,
-            gaslessSwapIntent
-        );
+        GaslessSwapParams memory swapParams =
+            GaslessSwapParams(isUniversalPool, pools, amountInSpecified, payloads, gaslessSwapIntent);
 
         swapParams.intent.tokenOut = address(token2);
         // Should revert if tokenOut is not WETH
@@ -1874,7 +1730,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         // Should revert if chain id changes after signing
         uint256 chainId = block.chainid;
 
-        (ownerSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
+        (ownerSignature,) = _getIntentsSignatureAndHash(_ownerPrivateKey, gaslessSwapIntent);
 
         vm.chainId(123);
 
@@ -1953,7 +1809,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             block.timestamp
         );
 
-        (bytes memory firstSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, firstGaslessSwapIntent);
+        (bytes memory firstSignature,) = _getIntentsSignatureAndHash(_ownerPrivateKey, firstGaslessSwapIntent);
 
         // Second user's swap intent
         GaslessSwapIntent memory secondGaslessSwapIntent = GaslessSwapIntent(
@@ -1971,7 +1827,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             block.timestamp
         );
 
-        (bytes memory secondSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, secondGaslessSwapIntent);
+        (bytes memory secondSignature,) = _getIntentsSignatureAndHash(_ownerPrivateKey, secondGaslessSwapIntent);
 
         GaslessSwapParams[] memory params = new GaslessSwapParams[](2);
         bytes[] memory signatures = new bytes[](2);
@@ -2005,7 +1861,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
         firstGaslessSwapIntent.amountOutMin = amountOutMin;
         params[0] = GaslessSwapParams(isUniversalPool, pools, amountInSpecified, payloads, firstGaslessSwapIntent);
 
-        (firstSignature, ) = _getIntentsSignatureAndHash(_ownerPrivateKey, firstGaslessSwapIntent);
+        (firstSignature,) = _getIntentsSignatureAndHash(_ownerPrivateKey, firstGaslessSwapIntent);
         signatures[0] = firstSignature;
 
         swapRouter.batchGaslessSwaps(params, signatures, fees);
@@ -2071,7 +1927,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             assertEq(reserve1, 10e18);
         }
 
-        weth.deposit{ value: 10e18 }();
+        weth.deposit{value: 10e18}();
         assertEq(weth.balanceOf(address(this)), 10e18);
         fourthSovereignALM.depositLiquidity(10e18, 10e18, new bytes(0));
         {
@@ -2104,7 +1960,7 @@ contract SwapRouterTest is Test, DeployPermit2 {
             assertEq(almReserves.tokenOutReserves, 10e18);
         }
 
-        weth.deposit{ value: 10e18 }();
+        weth.deposit{value: 10e18}();
         assertEq(weth.balanceOf(address(this)), 10e18);
         fourthUniversalALM.depositLiquidity(10e18, 10e18);
         assertEq(weth.balanceOf(address(this)), 0);
@@ -2116,27 +1972,25 @@ contract SwapRouterTest is Test, DeployPermit2 {
         }
     }
 
-    function _getUniversalPoolDefaultSwapData(
-        bool isZeroToOne,
-        uint256 amountOut
-    ) private pure returns (bytes[] memory externalContext) {
+    function _getUniversalPoolDefaultSwapData(bool isZeroToOne, uint256 amountOut)
+        private
+        pure
+        returns (bytes[] memory externalContext)
+    {
         externalContext = new bytes[](1);
 
         externalContext[0] = abi.encode(
-            true,
-            false,
-            0,
-            0,
-            ALMLiquidityQuote(amountOut, isZeroToOne ? int24(-1) : int24(1), new bytes(0))
+            true, false, 0, 0, ALMLiquidityQuote(amountOut, isZeroToOne ? int24(-1) : int24(1), new bytes(0))
         );
     }
 
-    function _getIntentsSignatureAndHash(
-        uint256 privateKey,
-        GaslessSwapIntent memory swapIntent
-    ) private view returns (bytes memory signature, bytes32 eip712IntentHash) {
+    function _getIntentsSignatureAndHash(uint256 privateKey, GaslessSwapIntent memory swapIntent)
+        private
+        view
+        returns (bytes memory signature, bytes32 eip712IntentHash)
+    {
         bytes32 intentHash = keccak256(abi.encode(GASLESS_SWAP_INTENT_TYPEHASH, swapIntent));
-        eip712IntentHash = keccak256(abi.encodePacked('\x19\x01', swapRouter.DOMAIN_SEPARATOR(), intentHash));
+        eip712IntentHash = keccak256(abi.encodePacked("\x19\x01", swapRouter.DOMAIN_SEPARATOR(), intentHash));
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, eip712IntentHash);
 

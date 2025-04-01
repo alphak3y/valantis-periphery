@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import 'forge-std/Test.sol';
-import 'forge-std/console.sol';
+import "forge-std/Test.sol";
+import "forge-std/console.sol";
 
-import { GaslessSwap } from 'src/swap-router/libraries/GaslessSwap.sol';
-import { GaslessSwapParams } from 'src/swap-router/structs/ValantisSwapRouterStructs.sol';
+import {GaslessSwap} from "src/swap-router/libraries/GaslessSwap.sol";
+import {GaslessSwapParams} from "src/swap-router/structs/ValantisSwapRouterStructs.sol";
 
 contract GaslessSwapHarness {
     function checkGaslessSwapParams(GaslessSwapParams calldata gaslessSwapParams) external view {
@@ -57,7 +57,7 @@ contract GaslessSwapParamsTest is Test {
         harness.checkGaslessSwapParams(params);
 
         params.intent.amountIn = 0;
-        params.intent.authorizedSender = makeAddr('SENDER');
+        params.intent.authorizedSender = makeAddr("SENDER");
 
         vm.expectRevert(GaslessSwap.GaslessSwap__checkGaslessSwapParams_senderNotAuthorized.selector);
         harness.checkGaslessSwapParams(params);

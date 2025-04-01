@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import { IERC1271 } from '../interfaces/IERC1271.sol';
+import {IERC1271} from "../interfaces/IERC1271.sol";
 
 /**
-    @notice Verification of ECDSA signatures for EOAs and smart contracts (EIP 1271).
-    @dev Ported from: https://github.com/Uniswap/permit2/blob/main/src/libraries/SignatureVerification.sol
+ * @notice Verification of ECDSA signatures for EOAs and smart contracts (EIP 1271).
+ *     @dev Ported from: https://github.com/Uniswap/permit2/blob/main/src/libraries/SignatureVerification.sol
  */
 library SignatureVerification {
     /**
-        @notice Thrown when the passed in signature is not a valid length
+     * @notice Thrown when the passed in signature is not a valid length
      */
     error InvalidSignatureLength();
 
     /**
-        @notice Thrown when the recovered signer is equal to the zero address
+     * @notice Thrown when the recovered signer is equal to the zero address
      */
     error InvalidSignature();
 
     /**
-        @notice Thrown when the recovered signer does not equal the claimedSigner
+     * @notice Thrown when the recovered signer does not equal the claimedSigner
      */
     error InvalidSigner();
 
     /**
-        @notice Thrown when the recovered contract signature is incorrect
+     * @notice Thrown when the recovered contract signature is incorrect
      */
     error InvalidContractSignature();
 

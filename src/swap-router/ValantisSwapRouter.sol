@@ -41,10 +41,11 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SignatureVerification for bytes;
 
-    /************************************************
+    /**
+     *
      *  CUSTOM ERRORS
-     ***********************************************/
-
+     *
+     */
     error ValantisSwapRouter__batchGaslessSwaps_invalidArrayLengths();
     error ValantisSwapRouter__receive_onlyWeth();
     error ValantisSwapRouter__sovereignPoolSwapCallback_invalidTokenIn();
@@ -65,49 +66,54 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
     error ValantisSwapRouter___gaslessSwap_tokenOutNotWeth();
     error ValantisSwapRouter___sendNativeToken_ethTransferFailed();
 
-    /************************************************
+    /**
+     *
      *  IMMUTABLES
-     ***********************************************/
+     *
+     */
 
     /**
-        @notice Address of wrapped Native token. 
+     * @notice Address of wrapped Native token.
      */
     // solhint-disable-next-line var-name-mixedcase
     address public immutable WETH9;
 
     /**
-        @notice Permit2 deployment. 
+     * @notice Permit2 deployment.
      */
     IAllowanceTransfer private immutable _permit2;
 
     /**
-        @notice Valantis Protocol Factory. 
+     * @notice Valantis Protocol Factory.
      */
     IProtocolFactory private immutable _protocolFactory;
 
-    /************************************************
+    /**
+     *
      *  STORAGE
-     ***********************************************/
+     *
+     */
 
     /**
-        @notice Nonce bitmap for each signer and word.
+     * @notice Nonce bitmap for each signer and word.
      */
     mapping(address => mapping(uint256 => uint256)) public nonceBitmap;
 
     /**
-        @notice For each swap, only one Universal Pool is allowed to call `universalPoolSwapCallback`. 
+     * @notice For each swap, only one Universal Pool is allowed to call `universalPoolSwapCallback`.
      */
     address public allowedUniversalPool;
 
     /**
-        @notice For each swap, only one Sovereign Pool is allowed to call `sovereignPoolSwapCallback`. 
+     * @notice For each swap, only one Sovereign Pool is allowed to call `sovereignPoolSwapCallback`.
      */
     address public allowedSovereignPool;
 
-    /************************************************
+    /**
+     *
      *  CONSTRUCTOR
-     ***********************************************/
-
+     *
+     */
     constructor(address protocolFactory_, address _weth9, address permit2_) {
         _protocolFactory = IProtocolFactory(protocolFactory_);
         WETH9 = _weth9;
@@ -117,50 +123,54 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         allowedSovereignPool = address(1);
     }
 
-    /************************************************
+    /**
+     *
      *  VIEW FUNCTIONS
-     ***********************************************/
+     *
+     */
 
     /**
-        @notice Address of Permit2 deployment. 
+     * @notice Address of Permit2 deployment.
      */
     function permit2() external view override returns (address) {
         return address(_permit2);
     }
 
     /**
-        @notice Address of Valantis Protocol Factory. 
+     * @notice Address of Valantis Protocol Factory.
      */
     function protocolFactory() external view override returns (address) {
         return address(_protocolFactory);
     }
 
     /**
-        @notice Exposes the status of reentrancy lock.
-        @dev Mainly useful for read-only reentrancy protection.
+     * @notice Exposes the status of reentrancy lock.
+     * @dev Mainly useful for read-only reentrancy protection.
      */
     function isLocked() external view override returns (bool) {
         return _status == _ENTERED;
     }
 
-    /************************************************
+    /**
+     *
      *  EXTERNAL FUNCTIONS
-     ***********************************************/
+     *
+     */
 
     /**
-        @dev Required for swaps where tokenOut is ETH.
-        @dev Only callable by `WETH9`.
+     * @dev Required for swaps where tokenOut is ETH.
+     * @dev Only callable by `WETH9`.
      */
     receive() external payable {
         if (msg.sender != WETH9) revert ValantisSwapRouter__receive_onlyWeth();
     }
 
     /**
-        @notice Callback function that Universal Pools can use to claim input token during a swap.
-        @dev Callable only by `allowedUniversalPool` at swap time.
-        @param _tokenIn Address of input token.
-        @param _amountInUsed Amount of input token used. 
-        @param _swapCallbackContext Bytes encoded data required to execute the callback.
+     * @notice Callback function that Universal Pools can use to claim input token during a swap.
+     * @dev Callable only by `allowedUniversalPool` at swap time.
+     * @param _tokenIn Address of input token.
+     * @param _amountInUsed Amount of input token used.
+     * @param _swapCallbackContext Bytes encoded data required to execute the callback.
      */
     function universalPoolSwapCallback(
         address _tokenIn,
@@ -181,11 +191,11 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
     }
 
     /**
-        @notice Callback function that Sovereign Pools can use to claim input token during a swap.
-        @dev Callable only by `allowedSovereignPool` at swap time.
-        @param _tokenIn Address of input token.
-        @param _amountInUsed Amount of input token used. 
-        @param _swapCallbackContext Bytes encoded data required to execute the callback.
+     * @notice Callback function that Sovereign Pools can use to claim input token during a swap.
+     * @dev Callable only by `allowedSovereignPool` at swap time.
+     * @param _tokenIn Address of input token.
+     * @param _amountInUsed Amount of input token used.
+     * @param _swapCallbackContext Bytes encoded data required to execute the callback.
      */
     function sovereignPoolSwapCallback(
         address _tokenIn,
@@ -208,12 +218,12 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
     }
 
     /**
-        @notice Swaps against Valantis liquidity pools using intents.
-        @dev Fee token payments, if any, are pulled from owner via Permit2.
-        @param _gaslessSwapParams Struct containing all intent parameters to be signed.
-        @param _ownerSignature EIP-712 signature of intent struct from owner.
-        @param _fee Fee to be charged for this transaction in feeToken.
-        @dev `_fee` must not exceed maxFee.
+     * @notice Swaps against Valantis liquidity pools using intents.
+     * @dev Fee token payments, if any, are pulled from owner via Permit2.
+     * @param _gaslessSwapParams Struct containing all intent parameters to be signed.
+     * @param _ownerSignature EIP-712 signature of intent struct from owner.
+     * @param _fee Fee to be charged for this transaction in feeToken.
+     * @dev `_fee` must not exceed maxFee.
      */
     function gaslessSwap(
         GaslessSwapParams calldata _gaslessSwapParams,
@@ -224,12 +234,12 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
     }
 
     /**
-        @notice Allows caller to execute batched swaps against Valantis liquidity pools.
-        @dev Each swap is expressed as an intent.
-        @param _gaslessSwapParamsArray Array containing struct parameters for each swap.
-        @param _ownerSignaturesArray Array containing intent signature from each owner.
-        @param _feeArray Array of fees that caller charges on each swap.
-        @return amountOutArray Array containing output token amount from each swap.
+     * @notice Allows caller to execute batched swaps against Valantis liquidity pools.
+     * @dev Each swap is expressed as an intent.
+     * @param _gaslessSwapParamsArray Array containing struct parameters for each swap.
+     * @param _ownerSignaturesArray Array containing intent signature from each owner.
+     * @param _feeArray Array of fees that caller charges on each swap.
+     * @return amountOutArray Array containing output token amount from each swap.
      */
     function batchGaslessSwaps(
         GaslessSwapParams[] calldata _gaslessSwapParamsArray,
@@ -256,9 +266,9 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
     }
 
     /**
-        @notice Allows msg.sender to swap against Valantis liquidity pools.
-        @param _directSwapParams Struct containing all relevant parameters to execute the swap(s). 
-        @return amountOut Amount of output token.
+     * @notice Allows msg.sender to swap against Valantis liquidity pools.
+     * @param _directSwapParams Struct containing all relevant parameters to execute the swap(s).
+     * @return amountOut Amount of output token.
      */
     function swap(
         DirectSwapParams calldata _directSwapParams
@@ -324,10 +334,10 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
     }
 
     /**
-        @notice Sweep token balances which have been locked into this contract.
-        @dev Anyone can call this to sweep tokens.
-        @param _tokens Array of token address to claim balances for.
-        @param _recipient Recipient of incoming token balances. 
+     * @notice Sweep token balances which have been locked into this contract.
+     * @dev Anyone can call this to sweep tokens.
+     * @param _tokens Array of token address to claim balances for.
+     * @param _recipient Recipient of incoming token balances.
      */
     function sweep(address[] memory _tokens, address _recipient) external nonReentrant {
         if (_tokens.length == 0) revert ValantisSwapRouter__sweep_invalidTokensArrayLength();
@@ -343,10 +353,11 @@ contract ValantisSwapRouter is IValantisSwapRouter, EIP712, ReentrancyGuard {
         }
     }
 
-    /************************************************
+    /**
+     *
      *  PRIVATE FUNCTIONS
-     ***********************************************/
-
+     *
+     */
     function _gaslessSwap(
         GaslessSwapParams calldata gaslessSwapParams,
         bytes calldata ownerSignature,
