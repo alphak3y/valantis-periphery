@@ -2,7 +2,7 @@
 pragma solidity 0.8.19;
 
 /**
-    @notice Swap params passed by solvers and executed on behalf of due owner.
+ * @notice Swap params passed by solvers and executed on behalf of due owner.
  */
 struct GaslessSwapParams {
     bool[] isUniversalPool;
@@ -13,7 +13,7 @@ struct GaslessSwapParams {
 }
 
 /**
-    @notice Intent struct, to be EIP-712 signed by `owner`.
+ * @notice Intent struct, to be EIP-712 signed by `owner`.
  */
 struct GaslessSwapIntent {
     bool isTokenOutEth;
@@ -31,7 +31,7 @@ struct GaslessSwapIntent {
 }
 
 /**
-    @notice Struct containing params for direct swap.
+ * @notice Struct containing params for direct swap.
  */
 struct DirectSwapParams {
     bool[] isUniversalPool;
@@ -47,8 +47,8 @@ struct DirectSwapParams {
 }
 
 /**
-    @notice Auxiliary struct containing parameters for `_executeSwaps`.
-    @dev Required in order to bypass stack-too-deep errors.
+ * @notice Auxiliary struct containing parameters for `_executeSwaps`.
+ *     @dev Required in order to bypass stack-too-deep errors.
  */
 struct ExecuteSwapParams {
     bool[] isUniversalPool;
@@ -62,7 +62,7 @@ struct ExecuteSwapParams {
 }
 
 /**
-    @notice Internal struct used for single swap payloads in Universal pools.
+ * @notice Internal struct used for single swap payloads in Universal pools.
  */
 struct UniversalPoolSwapPayload {
     bool isZeroToOne;
@@ -75,7 +75,7 @@ struct UniversalPoolSwapPayload {
 }
 
 /**
-    @notice Internal struct used for single swap payloads in Sovereign pools.
+ * @notice Internal struct used for single swap payloads in Sovereign pools.
  */
 struct SovereignPoolSwapPayload {
     bool isZeroToOne;

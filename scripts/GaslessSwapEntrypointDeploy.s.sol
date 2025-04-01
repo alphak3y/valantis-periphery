@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import 'forge-std/Script.sol';
 import { GaslessSwapEntrypoint } from '../src/swap-router/GaslessSwapEntrypoint.sol';
 
-contract GaslessSwapEntrypointDeploy is Script {
+contract GaslessSwapEntrypointDeployScript is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint('DEPLOYER_PRIVATE_KEY');
         address owner = vm.envAddress('GASLESSSWAP_ENTRYPOINT_OWNER');

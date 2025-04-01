@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import 'forge-std/Test.sol';
-import 'forge-std/console.sol';
+import "forge-std/Test.sol";
+import "forge-std/console.sol";
 
-import { SignatureVerification } from 'src/swap-router/libraries/SignatureVerification.sol';
-import { IERC1271 } from 'src/swap-router/interfaces/IERC1271.sol';
+import {SignatureVerification} from "src/swap-router/libraries/SignatureVerification.sol";
+import {IERC1271} from "src/swap-router/interfaces/IERC1271.sol";
 
 contract SignatureVerificationHarness {
     function verify(bytes calldata signature, bytes32 hash, address claimedSigner) external view {
@@ -23,8 +23,8 @@ contract SignatureVerificationTest is Test {
     }
 
     function slice(bytes memory _bytes, uint256 _start, uint256 _length) internal pure returns (bytes memory) {
-        require(_length + 31 >= _length, 'slice_overflow');
-        require(_bytes.length >= _start + _length, 'slice_outOfBounds');
+        require(_length + 31 >= _length, "slice_overflow");
+        require(_bytes.length >= _start + _length, "slice_outOfBounds");
 
         bytes memory tempBytes;
 
@@ -59,9 +59,7 @@ contract SignatureVerificationTest is Test {
                 } lt(mc, end) {
                     mc := add(mc, 0x20)
                     cc := add(cc, 0x20)
-                } {
-                    mstore(mc, mload(cc))
-                }
+                } { mstore(mc, mload(cc)) }
 
                 mstore(tempBytes, _length)
 
@@ -93,11 +91,8 @@ contract SignatureVerificationTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, randomHash);
 
         // solhint-disable-next-line max-line-length
-        bytes memory longSignature = abi.encodePacked(
-            r,
-            s | 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0,
-            v
-        );
+        bytes memory longSignature =
+            abi.encodePacked(r, s | 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0, v);
 
         bytes memory invalidSignature = abi.encodePacked(longSignature, uint256(1));
 
